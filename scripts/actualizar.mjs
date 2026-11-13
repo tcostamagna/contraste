@@ -51,7 +51,11 @@ async function descargar(url) {
 
 async function leerUno(medio, feed) {
   const xml = DEMO ? await readFile(path.join(RAIZ, 'test', 'fixtures', `${medio.id}.xml`), 'utf8') : await descargar(feed);
-  const items = leerFeed(xml);
+  let items = leerFeed(xml);
+  // Google Noticias agrega « - Nombre del medio» al final del titular y la bajada repite el titular.
+  if (feed.includes('news.google.com')) {
+    items = items.map((n) => ({ ...n, titulo: n.titulo.replace(/\s+[-–]\s+[^-–]+$/, ''), descripcion: '' }));
+  }
   if (!items.length) throw new Error('el feed no trae notas');
   return items;
 }

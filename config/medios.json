@@ -7,13 +7,7 @@
       "web": "https://www.pagina12.com.ar",
       "lado": "izquierda",
       "feeds": [
-        "https://www.pagina12.com.ar/rss/portada"
-      ],
-      "alternativas": [
-        "https://www.pagina12.com.ar/arc/outboundfeeds/rss/?outputType=xml",
-        "https://www.pagina12.com.ar/rss/secciones/el-pais/notas",
-        "https://www.pagina12.com.ar/rss/ultimas-noticias",
-        "https://www.pagina12.com.ar/feed"
+        "https://www.pagina12.com.ar/arc/outboundfeeds/rss/?outputType=xml"
       ]
     },
     {
@@ -25,10 +19,7 @@
         "https://www.eldestapeweb.com/rss/"
       ],
       "alternativas": [
-        "https://www.eldestapeweb.com/arc/outboundfeeds/rss/?outputType=xml",
-        "https://www.eldestapeweb.com/rss/portada.xml",
-        "https://www.eldestapeweb.com/rss.xml",
-        "https://www.eldestapeweb.com/feed"
+        "https://news.google.com/rss/search?q=site:eldestapeweb.com+when:2d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -139,10 +130,7 @@
         "https://www.laprensa.com.ar/rss/"
       ],
       "alternativas": [
-        "https://www.laprensa.com.ar/arc/outboundfeeds/rss/?outputType=xml",
-        "https://www.laprensa.com.ar/rss/home.xml",
-        "https://www.laprensa.com.ar/feed",
-        "https://www.laprensa.com.ar/rss.xml"
+        "https://news.google.com/rss/search?q=site:laprensa.com.ar+when:2d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     }
   ]
