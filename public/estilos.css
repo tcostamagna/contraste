@@ -230,3 +230,99 @@ img { max-width: 100%; display: block; }
 .vacio-grande { text-align: center; padding: 60px 16px; color: var(--tinta-3); }
 .pie { max-width: 1160px; margin: 0 auto; padding: 24px 16px 40px; color: var(--tinta-3); font-size: 0.85rem; border-top: 1px solid var(--linea); }
 .pie a { color: var(--tinta-2); }
+
+/* Accesibilidad */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* Indicador en vivo */
+.en-vivo { display: inline-flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--acento); }
+.en-vivo i { width: 8px; height: 8px; border-radius: 50%; background: var(--izquierda); animation: latido 1.6s ease-in-out infinite; }
+@keyframes latido { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .en-vivo i { animation: none; } }
+
+/* Acceso a «Ponete al día» en la portada */
+.aviso-hoy {
+  display: grid; gap: 4px; text-decoration: none; margin-bottom: 18px;
+  background: var(--acento-suave); border: 1px solid var(--acento); border-radius: var(--radio); padding: 14px 18px;
+}
+.aviso-hoy b { font: 700 1.2rem/1.25 var(--serif); }
+.aviso-hoy span:last-child { color: var(--acento); font-weight: 600; font-size: 0.92rem; }
+
+/* Cómo la cuenta cada lado */
+.lados { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 760px) { .lados { grid-template-columns: 1fr; } }
+.lado-card { background: var(--papel); border: 1px solid var(--linea); border-top: 4px solid var(--centro); border-radius: var(--radio); padding: 14px 16px; }
+.lado-card.izquierda { border-top-color: var(--izquierda); }
+.lado-card.derecha { border-top-color: var(--derecha); }
+.lado-card p { margin: 8px 0; line-height: 1.55; }
+.lado-cab { font-weight: 700; display: flex; align-items: center; gap: 4px; }
+.lado-n { margin-left: auto; font-weight: 400; font-size: 0.8rem; color: var(--tinta-3); }
+.lado-card blockquote { margin: 8px 0 0; padding: 8px 10px; background: var(--fondo); border-radius: 8px; font: italic 0.95rem/1.4 var(--serif); }
+.lado-card blockquote span { display: block; font: 600 0.75rem/1.3 var(--sans); color: var(--tinta-3); margin-bottom: 2px; font-style: normal; }
+.vacio-lado { color: var(--tinta-3); border-style: dashed; }
+
+/* Videos */
+.videos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.video { margin: 0; background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); overflow: hidden; }
+.video-play { position: relative; display: block; width: 100%; padding: 0; border: 0; cursor: pointer; background: #000; aspect-ratio: 16 / 9; }
+.video-play img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; }
+.video-icono { position: absolute; inset: 0; margin: auto; width: 52px; height: 52px; border-radius: 50%; background: rgba(0, 0, 0, 0.7); color: #fff; display: grid; place-items: center; font-size: 1.2rem; }
+.video-play:hover .video-icono { background: var(--izquierda); }
+.video-marco { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; }
+.video figcaption { padding: 8px 10px 10px; font-size: 0.85rem; color: var(--tinta-2); line-height: 1.35; }
+
+/* Siguiente noticia */
+.boton-siguiente {
+  display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; margin-top: 28px;
+  background: var(--tinta); color: var(--papel); border-radius: var(--radio); padding: 14px 18px; text-decoration: none;
+}
+.boton-siguiente span { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.75; }
+.boton-siguiente b { font: 600 1.05rem/1.3 var(--serif); grid-column: 1; }
+.boton-siguiente i { grid-row: 1 / span 2; grid-column: 2; font-style: normal; font-size: 1.4rem; }
+
+/* Chat */
+.chat { padding: 0; overflow: hidden; }
+.chat-cab { display: flex; gap: 10px; align-items: flex-start; padding: 14px 16px; border-bottom: 1px solid var(--linea); }
+.chat-cab h2 { margin: 0; }
+.chat-cab .nota-pie { margin: 2px 0 0; }
+.chat-sello { flex: none; font: 700 0.75rem/1 var(--sans); background: var(--acento); color: var(--papel); border-radius: 6px; padding: 5px 6px; }
+.chat-mensajes { display: flex; flex-direction: column; gap: 8px; padding: 12px 16px 0; max-height: 420px; overflow-y: auto; }
+.chat-mensajes:empty { display: none; }
+.chat-msg { padding: 9px 12px; border-radius: 12px; font-size: 0.93rem; line-height: 1.45; white-space: pre-line; max-width: 92%; }
+.chat-msg.usuario { align-self: flex-end; background: var(--tinta); color: var(--papel); border-bottom-right-radius: 4px; }
+.chat-msg.ia { align-self: flex-start; background: var(--fondo); border: 1px solid var(--linea); border-bottom-left-radius: 4px; }
+.chat-msg.cargando { color: var(--tinta-3); font-style: italic; }
+.chat-sugeridas { display: grid; gap: 8px; padding: 12px 16px; }
+.chat-sugeridas button {
+  display: flex; justify-content: space-between; gap: 10px; align-items: center; text-align: left;
+  font: inherit; font-size: 0.92rem; color: var(--tinta); background: var(--papel);
+  border: 1px solid var(--linea); border-radius: 12px; padding: 10px 12px; cursor: pointer;
+}
+.chat-sugeridas button:hover { border-color: var(--acento); }
+.chat-sugeridas button span { color: var(--tinta-3); }
+.chat-form { display: flex; gap: 8px; align-items: flex-end; padding: 0 16px 16px; }
+.chat-form textarea {
+  flex: 1; resize: none; font: inherit; font-size: 0.93rem; color: var(--tinta); background: var(--fondo);
+  border: 1px solid var(--linea); border-radius: 12px; padding: 9px 12px;
+}
+.chat-form textarea:focus { outline: 2px solid var(--acento); outline-offset: 1px; }
+.chat-mic, .chat-enviar { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--linea); background: var(--papel); cursor: pointer; font-size: 1rem; color: var(--tinta); }
+.chat-enviar { background: var(--acento); border-color: var(--acento); color: var(--papel); font-weight: 700; }
+.chat-mic.activo { background: var(--izquierda); color: #fff; }
+.chat-off { padding: 0 16px 14px; margin: 0; }
+
+/* Ponete al día */
+.hoy { max-width: 720px; margin: 0 auto; }
+.hoy-cab h1 { font: 700 2.2rem/1.15 var(--serif); margin: 8px 0 6px; }
+@media (max-width: 760px) { .hoy-cab h1 { font-size: 1.7rem; } }
+.hoy-meta { color: var(--tinta-3); font-size: 0.9rem; margin: 0 0 12px; }
+.hoy-lista { list-style: none; padding: 0; margin: 28px 0; display: grid; gap: 28px; }
+.hoy-bloque { display: grid; grid-template-columns: 40px 1fr; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--linea); }
+.hoy-num { font: 700 1.6rem/1 var(--serif); color: var(--acento); }
+.hoy-bloque h2 { font: 700 1.35rem/1.25 var(--serif); margin: 4px 0 8px; }
+.hoy-bloque p { margin: 0 0 10px; line-height: 1.6; }
+.hoy-importa { background: var(--acento-suave); border-radius: 8px; padding: 8px 12px; font-size: 0.95rem; }
+.hoy-mas { display: inline-block; margin-top: 10px; color: var(--acento); font-weight: 600; text-decoration: none; }
+.hoy-cierre { font: italic 1.1rem/1.5 var(--serif); color: var(--tinta-2); }
+.progreso { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 20; }
+.progreso i { display: block; height: 100%; width: 0; background: var(--acento); }

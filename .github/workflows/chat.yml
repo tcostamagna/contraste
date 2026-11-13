@@ -1,0 +1,78 @@
+name: Publicar chat (Cloudflare)
+
+# Publica el Worker de chat/ en Cloudflare y anota su dirección en public/chat.json para que el sitio la use.
+# Necesita los secretos CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID y ANTHROPIC_API_KEY. Sin ellos, no hace nada.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['chat/**', '.github/workflows/chat.yml']
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: chat
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: ¿Están los secretos?
+        id: secretos
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CUENTA: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLAVE: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$CUENTA" ] && [ -n "$CLAVE" ]; then
+            echo "listos=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Faltan secretos (CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID o ANTHROPIC_API_KEY): el chat no se publica."
+            echo "listos=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.secretos.outputs.listos == 'si'
+
+      - uses: actions/setup-node@v4
+        if: steps.secretos.outputs.listos == 'si'
+        with:
+          node-version: 22
+
+      - name: Instalar dependencias
+        if: steps.secretos.outputs.listos == 'si'
+        working-directory: chat
+        run: npm install --no-audit --no-fund
+
+      - name: Publicar en Cloudflare
+        id: wrangler
+        if: steps.secretos.outputs.listos == 'si'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: chat
+          secrets: ANTHROPIC_API_KEY
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Anotar la dirección del chat en el sitio
+        if: steps.secretos.outputs.listos == 'si'
+        env:
+          URL_CHAT: ${{ steps.wrangler.outputs.deployment-url }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -z "$URL_CHAT" ]; then echo "::warning::Wrangler no devolvió la dirección del Worker"; exit 0; fi
+          printf '{ "url": "%s" }\n' "$URL_CHAT" > public/chat.json
+          if git diff --quiet -- public/chat.json; then echo "La dirección no cambió."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/chat.json
+          git commit -m "Dirección del chat: $URL_CHAT"
+          git push
+          # Los commits del bot no disparan otros workflows: se relanza la publicación del sitio a mano.
+          gh workflow run publicar.yml --ref main

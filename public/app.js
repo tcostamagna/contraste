@@ -57,7 +57,7 @@ function tarjeta(h, { destacada = false } = {}) {
       <div class="tarjeta-pie">
         ${etiquetaCiego(h)}
         ${barra(h.cobertura)}
-        <div class="meta"><span><b>${h.medios}</b> medios</span><span>·</span><span>primero: ${esc(h.primero.nombre)}</span></div>
+        <div class="meta"><span><b>${h.medios}</b> medios</span><span>·</span><span>primero: ${esc(h.primero.nombre)}</span>${h.videos?.length ? `<span>·</span><span>▶ ${h.videos.length} ${h.videos.length === 1 ? 'video' : 'videos'}</span>` : ''}</div>
       </div>
     </div>
   </a>`;
@@ -86,6 +86,7 @@ function pie(generado) {
 async function portada() {
   const raiz = document.getElementById('contenido');
   const datos = await cargar('historias');
+  const resumenHoy = await cargar('hoy').catch(() => null);
   const params = new URLSearchParams(location.search);
   const vista = document.body.dataset.vista; // 'portada' o 'ciegos'
   let tema = params.get('tema') || '';
@@ -99,6 +100,13 @@ async function portada() {
       ${temasConNotas.map((t) => `<button type="button" data-tema="${t.id}" aria-pressed="${tema === t.id}">${esc(t.nombre)}</button>`).join('')}
     </div>`;
 
+    if (vista !== 'ciegos' && !tema && resumenHoy?.bloques?.length) {
+      html += `<a class="aviso-hoy" href="hoy.html">
+        <span class="en-vivo"><i aria-hidden="true"></i>Ponete al día</span>
+        <b>${esc(resumenHoy.titulo)}</b>
+        <span>Lo importante de hoy en ${resumenHoy.minutos} ${resumenHoy.minutos === 1 ? 'minuto' : 'minutos'} →</span>
+      </a>`;
+    }
     if (vista === 'ciegos') {
       const lista = datos.historias.filter((h) => h.soloCubre && filtro(h));
       html += `<h1 class="seccion-titulo">Puntos ciegos</h1>
@@ -151,11 +159,23 @@ async function ficha() {
   }
   document.title = `${h.titular} · Contraste`;
 
-  const enfoques = h.enfoques
-    ? `<section class="caja"><h2>Cómo la cuenta cada lado</h2>
-        ${LADOS.filter(([l]) => h.enfoques[l]).map(([l, n]) => `<div class="enfoque ${l}"><b>${n}</b>${esc(h.enfoques[l])}</div>`).join('')}
-      </section>`
-    : '';
+  const historias = datos.historias;
+  const conIA = Boolean(h.enfoques);
+
+  // Cómo la cuenta cada lado: texto humano de la IA y, siempre, cómo tituló un medio de ese lado.
+  const lados = LADOS.map(([l, n]) => {
+    const arts = h.articulos.filter((a) => a.lado === l);
+    if (!arts.length) {
+      return `<div class="lado-card ${l} vacio-lado"><div class="lado-cab"><span class="punto ${l}"></span>${n}</div><p>Ningún medio de ${n.toLowerCase()} la publicó.${h.soloCubre ? ' Es un punto ciego para este lado.' : ''}</p></div>`;
+    }
+    const ejemplo = arts[0];
+    return `<div class="lado-card ${l}">
+      <div class="lado-cab"><span class="punto ${l}"></span>${n} <span class="lado-n">${arts.length} ${arts.length === 1 ? 'nota' : 'notas'}</span></div>
+      ${conIA && h.enfoques[l] ? `<p>${esc(h.enfoques[l])}</p>` : ''}
+      <blockquote><span>Así tituló ${esc(ejemplo.nombre)}:</span> «${esc(ejemplo.titulo)}»</blockquote>
+    </div>`;
+  }).join('');
+
   const hechos = h.hechos.length
     ? `<section class="caja"><h2>En qué coinciden</h2><ul>${h.hechos.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section>`
     : '';
@@ -173,6 +193,16 @@ async function ficha() {
     </div>`;
   }).join('');
 
+  const videos = h.videos?.length
+    ? `<h2 class="seccion-titulo">En video</h2>
+       <p class="seccion-sub">Lo que publicaron los canales de los medios sobre esta noticia.</p>
+       <div class="videos">${h.videos.map(tarjetaVideo).join('')}</div>`
+    : '';
+
+  const relacionadas = sigueLeyendo(h, historias);
+  const indice = historias.findIndex((x) => x.id === h.id);
+  const siguiente = historias[indice + 1] || (indice > 0 ? historias[0] : null);
+
   raiz.innerHTML = `${avisoDemo(datos)}
   <div class="ficha">
     <article>
@@ -182,9 +212,15 @@ async function ficha() {
       ${h.resumen ? `<p class="resumen">${esc(h.resumen)}</p>` : ''}
       ${origen}
       ${hechos}
-      ${enfoques}
+      <h2 class="seccion-titulo">Cómo la cuenta cada lado</h2>
+      <p class="seccion-sub">${conIA ? 'Qué pone en primer plano cada lado y cómo lo titula.' : 'Cómo la titula cada lado.'}</p>
+      <div class="lados">${lados}</div>
+      ${videos}
       <h2 class="seccion-titulo">Qué publicó cada medio</h2>
       <div class="columnas">${columnas}</div>
+      ${relacionadas.length ? `<h2 class="seccion-titulo">Seguí leyendo</h2>
+        <div class="grilla">${relacionadas.map((x) => tarjeta(x)).join('')}</div>` : ''}
+      ${siguiente ? `<a class="boton-siguiente" href="${enlaceFicha(siguiente)}"><span>Siguiente noticia</span><b>${esc(siguiente.titular)}</b><i aria-hidden="true">→</i></a>` : ''}
     </article>
     <aside class="lateral">
       <section class="caja">
@@ -194,6 +230,7 @@ async function ficha() {
         ${barra(h.cobertura)}
         <div style="margin-top:10px">${leyenda(h.cobertura)}</div>
       </section>
+      <section class="caja chat" id="chat" aria-label="Preguntale a la IA sobre esta noticia"></section>
       <section class="caja">
         <h2>Quién la publicó primero</h2>
         <ol class="linea-tiempo">
@@ -202,6 +239,208 @@ async function ficha() {
       </section>
     </aside>
   </div>`;
+  activarVideos(raiz);
+  montarChat(document.getElementById('chat'), h);
+  pie(datos.generado);
+}
+
+// ---------- Videos ----------
+function tarjetaVideo(v) {
+  return `<figure class="video" data-video="${esc(v.id)}">
+    <button type="button" class="video-play" aria-label="Reproducir: ${esc(v.titulo)}">
+      <img src="${esc(v.miniatura)}" alt="" loading="lazy" referrerpolicy="no-referrer">
+      <span class="video-icono" aria-hidden="true">▶</span>
+    </button>
+    <figcaption><span class="punto ${v.lado}"></span><b>${esc(v.nombre)}</b> · ${haceCuanto(v.fecha)}<br>${esc(v.titulo)}</figcaption>
+  </figure>`;
+}
+
+function activarVideos(raiz) {
+  raiz.querySelectorAll('.video-play').forEach((b) => b.addEventListener('click', () => {
+    const id = b.closest('[data-video]').dataset.video;
+    const marco = document.createElement('iframe');
+    marco.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&rel=0`;
+    marco.title = 'Video';
+    marco.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    marco.allowFullscreen = true;
+    marco.className = 'video-marco';
+    b.replaceWith(marco);
+  }));
+}
+
+// ---------- Seguí leyendo ----------
+const palabrasClave = (t) => new Set(String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').split(/[^a-z0-9]+/).filter((p) => p.length > 4));
+
+function sigueLeyendo(h, historias, cantidad = 4) {
+  const mias = palabrasClave([h.titular, ...h.articulos.map((a) => a.titulo)].join(' '));
+  return historias
+    .filter((x) => x.id !== h.id)
+    .map((x) => {
+      let comunes = 0;
+      for (const p of palabrasClave(x.titular)) if (mias.has(p)) comunes++;
+      return { x, puntos: comunes * 3 + (x.tema === h.tema ? 2 : 0) + x.medios * 0.1 };
+    })
+    .sort((a, b) => b.puntos - a.puntos)
+    .slice(0, cantidad)
+    .map((r) => r.x);
+}
+
+// ---------- Chat ----------
+let configChat;
+async function urlChat() {
+  if (configChat === undefined) {
+    try {
+      const r = await fetch('chat.json', { cache: 'no-cache' });
+      configChat = r.ok ? (await r.json()).url || '' : '';
+    } catch {
+      configChat = '';
+    }
+  }
+  return configChat;
+}
+
+function respuestasFijas(h) {
+  const r = h.respuestas || {};
+  const orden = [...new Map(h.articulos.map((a) => [a.medio, a])).values()];
+  const primero = orden[0];
+  const despues = orden.slice(1, 6).map((a) => a.nombre);
+  const quien = `La publicó primero ${primero.nombre} (${primero.lado}), el ${hora(primero.fecha).replace(/\.$/, '')}.${despues.length ? ` Después la publicaron ${despues.join(', ')}${orden.length > 6 ? ' y otros' : ''}.` : ''}${r.origen ? `\n\n${r.origen}` : ''}`;
+  const cadaLado = h.enfoques
+    ? LADOS.filter(([l]) => h.enfoques[l]).map(([l, n]) => `${n}: ${h.enfoques[l]}`).join('\n\n')
+    : LADOS.map(([l, n]) => {
+      const a = h.articulos.find((x) => x.lado === l);
+      return a ? `${n}: ${a.nombre} tituló «${a.titulo}».` : `${n}: ningún medio la publicó.`;
+    }).join('\n\n');
+  return [
+    { pregunta: 'Explicámelo fácil', respuesta: r.facil },
+    { pregunta: '¿Quién la publicó primero y de dónde salió?', respuesta: quien },
+    { pregunta: '¿Qué cuenta cada lado?', respuesta: cadaLado },
+    { pregunta: '¿Qué falta saber?', respuesta: r.faltaSaber },
+  ];
+}
+
+async function montarChat(caja, h) {
+  const url = await urlChat();
+  const sugeridas = respuestasFijas(h).filter((s) => s.respuesta || url);
+  const historial = [];
+  const dictado = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  caja.innerHTML = `
+    <div class="chat-cab"><span class="chat-sello">IA</span><div><h2>Preguntale a la IA</h2><p class="nota-pie">Responde solo con lo que publicaron los medios. No opina.</p></div></div>
+    <div class="chat-mensajes" aria-live="polite"></div>
+    <div class="chat-sugeridas">${sugeridas.map((s, i) => `<button type="button" data-i="${i}">${esc(s.pregunta)}<span aria-hidden="true">→</span></button>`).join('')}</div>
+    ${url ? `<form class="chat-form">
+        <label class="sr" for="chat-texto">Tu pregunta sobre esta noticia</label>
+        <textarea id="chat-texto" rows="2" maxlength="500" placeholder="Escribí tu pregunta sobre esta noticia"></textarea>
+        ${dictado ? '<button type="button" class="chat-mic" aria-label="Dictar la pregunta" title="Dictar">🎙</button>' : ''}
+        <button type="submit" class="chat-enviar" aria-label="Enviar">↑</button>
+      </form>` : `<p class="nota-pie chat-off">Las preguntas libres se activan cuando se conecte el servidor del chat.</p>`}`;
+
+  const lista = caja.querySelector('.chat-mensajes');
+  const agregar = (rol, texto) => {
+    const el = document.createElement('div');
+    el.className = `chat-msg ${rol}`;
+    el.textContent = texto;
+    lista.appendChild(el);
+    lista.scrollTop = lista.scrollHeight;
+    return el;
+  };
+
+  const preguntar = async (pregunta, fija) => {
+    agregar('usuario', pregunta);
+    if (fija) {
+      agregar('ia', fija);
+      historial.push({ rol: 'usuario', texto: pregunta }, { rol: 'ia', texto: fija });
+      return;
+    }
+    const espera = agregar('ia cargando', 'Leyendo las notas…');
+    try {
+      const r = await fetch(`${url.replace(/\/$/, '')}/preguntar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: h.id, pregunta, historial }),
+      });
+      const datos = await r.json();
+      espera.classList.remove('cargando');
+      espera.textContent = datos.respuesta || datos.error || 'No hubo respuesta.';
+      if (datos.respuesta) historial.push({ rol: 'usuario', texto: pregunta }, { rol: 'ia', texto: datos.respuesta });
+    } catch {
+      espera.classList.remove('cargando');
+      espera.textContent = 'No me pude conectar con el asistente. Probá de nuevo en un rato.';
+    }
+  };
+
+  caja.querySelectorAll('.chat-sugeridas button').forEach((b) => b.addEventListener('click', () => {
+    const s = sugeridas[Number(b.dataset.i)];
+    b.remove();
+    preguntar(s.pregunta, s.respuesta);
+  }));
+
+  const form = caja.querySelector('.chat-form');
+  if (form) {
+    const texto = form.querySelector('textarea');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = texto.value.trim();
+      if (!q) return;
+      texto.value = '';
+      preguntar(q);
+    });
+    texto.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); }
+    });
+    const mic = form.querySelector('.chat-mic');
+    if (mic) {
+      mic.addEventListener('click', () => {
+        const rec = new dictado();
+        rec.lang = 'es-AR';
+        rec.interimResults = false;
+        mic.classList.add('activo');
+        rec.onresult = (ev) => { texto.value = (texto.value + ' ' + ev.results[0][0].transcript).trim(); };
+        rec.onend = () => mic.classList.remove('activo');
+        rec.start();
+      });
+    }
+  }
+}
+
+// ---------- Ponete al día ----------
+async function hoy() {
+  const raiz = document.getElementById('contenido');
+  const datos = await cargar('hoy');
+  const bloques = datos.bloques || [];
+  raiz.innerHTML = `${avisoDemo(datos)}
+    <div class="hoy">
+      <header class="hoy-cab">
+        <span class="en-vivo"><i aria-hidden="true"></i>Se actualiza cada 30 minutos</span>
+        <h1>${esc(datos.titulo)}</h1>
+        <p class="hoy-meta">Lectura de ${datos.minutos} ${datos.minutos === 1 ? 'minuto' : 'minutos'} · ${bloques.length} noticias · actualizado ${haceCuanto(datos.generado)}</p>
+        <p class="resumen">${esc(datos.intro)}</p>
+      </header>
+      <ol class="hoy-lista">
+        ${bloques.map((b, i) => `<li class="hoy-bloque" id="n${i + 1}">
+          <div class="hoy-num" aria-hidden="true">${i + 1}</div>
+          <div>
+            <div class="meta"><span class="tema">${esc(b.tema || '')}</span><span>·</span><span>${b.medios} medios</span></div>
+            <h2>${esc(b.titular)}</h2>
+            <p>${esc(b.texto)}</p>
+            ${b.porQueImporta ? `<p class="hoy-importa"><b>Por qué importa:</b> ${esc(b.porQueImporta)}</p>` : ''}
+            ${b.cobertura ? barra(b.cobertura) : ''}
+            <a class="hoy-mas" href="noticia.html?id=${encodeURIComponent(b.id)}">Cómo la cuenta cada medio →</a>
+          </div>
+        </li>`).join('')}
+      </ol>
+      ${datos.cierre ? `<p class="hoy-cierre">${esc(datos.cierre)}</p>` : ''}
+      <p class="nota-pie">${datos.ia ? 'Escrito con IA a partir de lo que publicaron los medios; no verificamos los datos. Entrá a cada noticia para leer las fuentes.' : 'Titulares y bajadas tomados de los medios.'}</p>
+    </div>
+    <div class="progreso" aria-hidden="true"><i></i></div>`;
+  const barraProgreso = raiz.querySelector('.progreso i');
+  const actualizar = () => {
+    const max = document.documentElement.scrollHeight - innerHeight;
+    barraProgreso.style.width = `${max > 0 ? Math.min(100, (scrollY / max) * 100) : 100}%`;
+  };
+  addEventListener('scroll', actualizar, { passive: true });
+  actualizar();
   pie(datos.generado);
 }
 
@@ -220,11 +459,16 @@ async function medios() {
     <div class="tabla-scroll"><table class="tabla">
       <thead><tr><th>Medio</th><th>Línea</th><th>Última lectura</th></tr></thead>
       <tbody>${filas}</tbody>
-    </table></div>`;
+    </table></div>
+    ${datos.videos?.length ? `<h2 class="seccion-titulo">Canales de video</h2>
+      <p class="seccion-sub">Leemos el RSS público del canal de YouTube de cada medio y mostramos sus videos junto a la noticia de la que hablan.</p>
+      <div class="tabla-scroll"><table class="tabla"><thead><tr><th>Canal</th><th>Medio</th><th>Última lectura</th></tr></thead><tbody>
+      ${datos.videos.map((v) => `<tr><td><a href="https://www.youtube.com/${esc(v.handle)}" target="_blank" rel="noopener">${esc(v.handle)}</a></td><td>${esc(datos.medios.find((m) => m.id === v.medio)?.nombre || v.medio)}</td><td>${v.ok ? `<span class="ok">Funciona</span> · ${v.videos} videos en 48 h` : `<span class="error">Sin datos</span><div class="nota-pie">${esc(v.error)}</div>`}</td></tr>`).join('')}
+      </tbody></table></div>` : ''}`;
   pie(datos.generado);
 }
 
-const paginas = { portada, ciegos: portada, ficha, medios };
+const paginas = { portada, ciegos: portada, ficha, medios, hoy };
 (paginas[document.body.dataset.vista] || portada)().catch((e) => {
   document.getElementById('contenido').innerHTML = `<div class="vacio-grande">No se pudieron cargar las noticias. ${esc(e.message)}</div>`;
 });

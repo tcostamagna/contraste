@@ -6,7 +6,12 @@ La misma noticia, contada por todos los medios argentinos. Contraste lee los RSS
 - **Quién la publicó primero** y en qué orden la levantaron los demás.
 - **Puntos ciegos**: noticias que publican varios medios de un lado y ninguno del otro.
 - **Qué publicó cada medio**, con enlace a la nota original.
-- Opcional, con una clave de la API de Claude: **titular y resumen neutrales**, los hechos en los que coinciden los medios y cómo enfoca la noticia cada lado.
+- **Ponete al día** (`hoy.html`): lo importante del momento en pocos minutos de lectura, renovado cada 30 minutos.
+- **Cómo la cuenta cada lado**, con un titular de ejemplo de cada lado.
+- **Videos** de los canales de YouTube de los medios, junto a la noticia de la que hablan (`config/videos.json`).
+- **Seguí leyendo**: noticias relacionadas y botón a la siguiente.
+- **Preguntale a la IA**: respuestas a preguntas sugeridas sobre cada noticia y, con el servidor del chat, preguntas libres.
+- Con una clave de la API de Claude: titular y resumen neutrales, los hechos en común, cómo la cuenta cada lado en tono humano, las respuestas del chat y el texto de «Ponete al día».
 
 ## Probarlo en tu computadora
 
@@ -38,6 +43,18 @@ El workflow `.github/workflows/publicar.yml` corre cada 30 minutos en la rama `m
 2. En **Settings → Actions → General**, dejá habilitadas las Actions.
 3. Opcional: en **Settings → Secrets and variables → Actions**, agregá el secreto `ANTHROPIC_API_KEY`. La variable `MAX_RESUMENES` limita cuántas noticias se resumen por corrida (15 por defecto); cada resumen se hace una sola vez y se rehace solo si se suman al menos dos medios.
 4. En **Actions → Actualizar y publicar → Run workflow** lo podés correr a mano la primera vez.
+
+## Chat con preguntas libres (Cloudflare)
+
+GitHub Pages solo sirve archivos fijos, así que las preguntas libres pasan por un servidor chiquito en Cloudflare Workers (`chat/`), que guarda la clave de Claude como secreto. El plan gratuito de Workers alcanza para empezar.
+
+1. Creá una cuenta en https://dash.cloudflare.com/sign-up.
+2. Copiá tu **Account ID** (aparece en la página principal de la cuenta, en la columna de la derecha, o en *Workers & Pages*).
+3. Creá un token en **My Profile → API Tokens → Create Token → plantilla «Edit Cloudflare Workers»**.
+4. En GitHub, **Settings → Secrets and variables → Actions**, cargá `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` y `ANTHROPIC_API_KEY`.
+5. En **Actions → Publicar chat (Cloudflare) → Run workflow**. El workflow publica el Worker, anota su dirección en `public/chat.json` y vuelve a publicar el sitio: desde ahí aparece la caja para escribir preguntas.
+
+Cada pregunta libre es una llamada a la API de Claude (unos centavos de dólar). El Worker solo acepta pedidos desde el sitio, limita la pregunta a 500 caracteres y responde solo sobre la noticia abierta.
 
 ## Cómo funciona
 

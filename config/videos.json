@@ -1,0 +1,15 @@
+{
+  "_nota": "Canales de YouTube de los medios. 'medio' tiene que coincidir con un id de medios.json (de ahí sale el lado). 'handle' es la dirección @ del canal; el id del canal se averigua solo la primera vez. Si un canal falla, la página Medios lo muestra.",
+  "canales": [
+    { "medio": "c5n", "handle": "@c5n" },
+    { "medio": "pagina12", "handle": "@pagina12" },
+    { "medio": "eldestape", "handle": "@eldestape" },
+    { "medio": "eldiarioar", "handle": "@elDiarioAR" },
+    { "medio": "infobae", "handle": "@infobae" },
+    { "medio": "perfil", "handle": "@perfilcom" },
+    { "medio": "ambito", "handle": "@ambitocom" },
+    { "medio": "tn", "handle": "@todonoticias" },
+    { "medio": "lanacion", "handle": "@lanacion" },
+    { "medio": "clarin", "handle": "@clarincom" }
+  ]
+}

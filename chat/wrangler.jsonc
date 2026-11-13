@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "contraste-chat",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-13",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "traces": { "enabled": true }
+  },
+  "vars": {
+    // De dónde lee las noticias y qué sitio puede llamar al chat.
+    "SITIO": "https://tcostamagna.github.io/contraste",
+    "ORIGEN_PERMITIDO": "https://tcostamagna.github.io"
+  }
+  // El secreto ANTHROPIC_API_KEY se carga con `wrangler secret put` (lo hace el workflow chat.yml).
+}
