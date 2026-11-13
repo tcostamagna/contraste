@@ -49,21 +49,39 @@ async function descargar(url) {
   return r.text();
 }
 
+async function leerUno(medio, feed) {
+  const xml = DEMO ? await readFile(path.join(RAIZ, 'test', 'fixtures', `${medio.id}.xml`), 'utf8') : await descargar(feed);
+  const items = leerFeed(xml);
+  if (!items.length) throw new Error('el feed no trae notas');
+  return items;
+}
+
 async function leerMedio(medio) {
   const notas = [];
   const errores = [];
+  const usados = [];
   for (const feed of medio.feeds) {
     try {
-      const xml = DEMO ? await readFile(path.join(RAIZ, 'test', 'fixtures', `${medio.id}.xml`), 'utf8') : await descargar(feed);
-      const items = leerFeed(xml);
-      if (!items.length) throw new Error('el feed no trae notas');
-      notas.push(...items);
+      notas.push(...(await leerUno(medio, feed)));
+      usados.push(feed);
     } catch (e) {
       if (DEMO && e.code === 'ENOENT') continue; // en la demo no todos los medios tienen ejemplo
       errores.push(`${feed}: ${e.message}`);
     }
   }
-  return { notas, errores };
+  // Si ningún feed principal anduvo, se prueban las alternativas en orden hasta que una funcione.
+  if (!notas.length && !DEMO) {
+    for (const feed of medio.alternativas || []) {
+      try {
+        notas.push(...(await leerUno(medio, feed)));
+        usados.push(feed);
+        break;
+      } catch (e) {
+        errores.push(`${feed}: ${e.message}`);
+      }
+    }
+  }
+  return { notas, errores: notas.length ? [] : errores, usados };
 }
 
 async function cargarArchivo() {
@@ -151,9 +169,10 @@ async function main() {
   const estado = {};
   const resultados = await Promise.all(medios.map(async (m) => [m, await leerMedio(m)]));
   let nuevas = 0;
-  for (const [m, { notas, errores }] of resultados) {
-    estado[m.id] = { ok: notas.length > 0, notas: notas.length, errores, revisado: new Date(ahora).toISOString() };
-    log(`${notas.length ? '✓' : '✗'} ${m.nombre.padEnd(20)} ${String(notas.length).padStart(3)} notas${errores.length ? '  ' + errores.join(' | ') : ''}`);
+  for (const [m, { notas, errores, usados }] of resultados) {
+    estado[m.id] = { ok: notas.length > 0, notas: notas.length, errores, feeds: usados, revisado: new Date(ahora).toISOString() };
+    const alternativa = usados.find((u) => !m.feeds.includes(u));
+    log(`${notas.length ? '✓' : '✗'} ${m.nombre.padEnd(20)} ${String(notas.length).padStart(3)} notas${alternativa ? `  (alternativa: ${alternativa})` : ''}${errores.length ? '  ' + errores.join(' | ') : ''}`);
     for (const n of notas) {
       const url = limpiarUrl(n.url);
       const previa = archivo.articulos[url];
