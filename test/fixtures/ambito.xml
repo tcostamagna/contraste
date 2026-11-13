@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Ámbito (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[Inflación de octubre: 2,1% según INDEC; qué esperan las consultoras para noviembre]]></title>
+      <link>https://ejemplo.invalid/ambito/nota-1?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 13:12:00 GMT</pubDate>
+      <category>Economía</category>
+      <description>&lt;p&gt;El IPC de octubre del INDEC fue 2,1%. El mercado proyecta un número similar para noviembre.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[El dólar oficial cerró estable y el riesgo país bajó a 640 puntos]]></title>
+      <link>https://ejemplo.invalid/ambito/nota-2?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 21:00:00 GMT</pubDate>
+      <category>Economía</category>
+      <description>&lt;p&gt;Jornada tranquila en el mercado cambiario. Los bonos subieron y el riesgo país perforó los 650 puntos.&lt;/p&gt;</description>
+    </item>
+</channel></rss>

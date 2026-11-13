@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Olé (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[Boca ganó el superclásico 2-1 ante River]]></title>
+      <link>https://ejemplo.invalid/ole/nota-1?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 17:06:00 GMT</pubDate>
+      <category>Deportes</category>
+      <description>&lt;p&gt;Medio sin configuración: esta nota se ignora.&lt;/p&gt;</description>
+    </item>
+</channel></rss>

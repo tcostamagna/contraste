@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Noticia · Contraste</title>
+  <meta name="description" content="La misma noticia contada por los medios argentinos de izquierda, centro y derecha: quién la publica, quién no y cómo la enfoca cada uno.">
+  <meta property="og:title" content="Noticia · Contraste">
+  <meta property="og:description" content="La misma noticia contada por los medios argentinos de izquierda, centro y derecha.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap">
+  <link rel="stylesheet" href="estilos.css">
+</head>
+<body data-vista="ficha">
+  <header class="cabecera">
+    <div class="cabecera-in">
+      <a class="marca" href="./"><span class="marca-icono" aria-hidden="true"><i style="background:var(--izquierda)"></i><i style="background:var(--centro)"></i><i style="background:var(--derecha)"></i></span>Contraste</a>
+      <span class="marca-lema">La misma noticia, contada por todos los medios</span>
+      <nav class="nav" aria-label="Secciones">
+        <a href="./">Portada</a>
+        <a href="puntos-ciegos.html">Puntos ciegos</a>
+        <a href="medios.html">Medios</a>
+      </nav>
+    </div>
+  </header>
+  <main class="contenedor" id="contenido"><div class="vacio-grande">Cargando…</div></main>
+  <footer class="pie">
+    <p id="actualizado"></p>
+    <p>Contraste agrupa automáticamente lo que publican los medios en sus RSS públicos y enlaza siempre a la nota original. La clasificación de los medios es aproximada: podés ver y discutir la lista en <a href="medios.html">Medios</a>.</p>
+  </footer>
+  <script src="app.js" defer></script>
+</body>
+</html>

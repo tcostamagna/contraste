@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Infobae (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[El INDEC informó que la inflación de octubre fue de 2,1% y acumula 24,8% en el año]]></title>
+      <link>https://ejemplo.invalid/infobae/nota-1?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 12:30:00 GMT</pubDate>
+      <category>Economía</category>
+      <description>&lt;p&gt;El índice de precios al consumidor de octubre se ubicó en 2,1%, según el INDEC. Alimentos subió 1,8% y la interanual bajó a 31,2%.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Presupuesto 2027: Diputados abrió la sesión y el oficialismo busca los votos de los gobernadores]]></title>
+      <link>https://ejemplo.invalid/infobae/nota-2?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 16:12:00 GMT</pubDate>
+      <category>Política</category>
+      <description>&lt;p&gt;Con el apoyo de bloques provinciales, el oficialismo intenta aprobar el Presupuesto 2027 en Diputados.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Superclásico: Boca venció 2-1 a River en La Bombonera por la Liga Profesional]]></title>
+      <link>https://ejemplo.invalid/infobae/nota-3?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 17:12:00 GMT</pubDate>
+      <category>Deportes</category>
+      <description>&lt;p&gt;Boca dio vuelta el partido y le ganó 2-1 a River en La Bombonera.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Una startup cordobesa de inteligencia artificial consiguió financiamiento por USD 12 millones]]></title>
+      <link>https://ejemplo.invalid/infobae/nota-4?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 21:06:00 GMT</pubDate>
+      <category>Tecnología</category>
+      <description>&lt;p&gt;La empresa desarrolla modelos de IA para el agro y abrirá oficinas en San Pablo.&lt;/p&gt;</description>
+    </item>
+</channel></rss>

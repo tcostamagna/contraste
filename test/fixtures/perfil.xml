@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Perfil (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[La CGT confirmó un paro general de 24 horas para el 27 de noviembre]]></title>
+      <link>https://ejemplo.invalid/perfil/nota-1?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 14:30:00 GMT</pubDate>
+      <category>Política</category>
+      <description>&lt;p&gt;El consejo directivo de la CGT aprobó la huelga general en rechazo a la reforma laboral del Gobierno.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[El SMN emitió alerta amarilla por tormentas fuertes en el AMBA para esta noche]]></title>
+      <link>https://ejemplo.invalid/perfil/nota-2?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 20:12:00 GMT</pubDate>
+      <category>Sociedad</category>
+      <description>&lt;p&gt;Según el Servicio Meteorológico Nacional, las tormentas llegarán al AMBA con ráfagas de hasta 70 km/h.&lt;/p&gt;</description>
+    </item>
+</channel></rss>

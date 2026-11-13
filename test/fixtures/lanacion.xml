@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>La Nación (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[El INDEC confirmó una inflación de 2,1% en octubre, la más baja en cuatro meses]]></title>
+      <link>https://ejemplo.invalid/lanacion/nota-1?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 13:06:00 GMT</pubDate>
+      <category>Economía</category>
+      <description>&lt;p&gt;La inflación de octubre medida por el INDEC fue 2,1%, con alimentos en 1,8%. Las consultoras esperaban 2,3%.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Diputados debate el Presupuesto 2027 con el oficialismo cerca del quórum]]></title>
+      <link>https://ejemplo.invalid/lanacion/nota-2?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 16:00:00 GMT</pubDate>
+      <category>Política</category>
+      <description>&lt;p&gt;La Cámara de Diputados inició la sesión para tratar el Presupuesto 2027. El oficialismo negocia con gobernadores los votos.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Inseguridad en La Matanza: las denuncias por robos subieron 18% según un informe]]></title>
+      <link>https://ejemplo.invalid/lanacion/nota-3?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 19:12:00 GMT</pubDate>
+      <category>Policiales</category>
+      <description>&lt;p&gt;Las denuncias por robo en La Matanza crecieron 18% en el trimestre, según el relevamiento de una ONG.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Un festival de cine independiente en Mar del Plata anunció su programación]]></title>
+      <link>https://ejemplo.invalid/lanacion/nota-4?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 21:18:00 GMT</pubDate>
+      <category>Espectáculos</category>
+      <description>&lt;p&gt;La edición incluye 120 películas y una retrospectiva del cine argentino de los 80.&lt;/p&gt;</description>
+    </item>
+</channel></rss>

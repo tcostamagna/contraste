@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>La Prensa (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[La Matanza: un informe advierte un aumento de 18% en las denuncias por robos]]></title>
+      <link>https://ejemplo.invalid/laprensa/nota-1?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 19:30:00 GMT</pubDate>
+      <category>Policiales</category>
+      <description>&lt;p&gt;El estudio de una ONG muestra que las denuncias por robos en La Matanza aumentaron 18% en tres meses.&lt;/p&gt;</description>
+    </item>
+</channel></rss>

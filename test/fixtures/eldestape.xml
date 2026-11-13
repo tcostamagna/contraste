@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>El Destape (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[INDEC: la inflación de octubre fue 2,1% y los alimentos golpean a los jubilados]]></title>
+      <link>https://ejemplo.invalid/eldestape/nota-1?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 13:36:00 GMT</pubDate>
+      <category>Economía</category>
+      <description>&lt;p&gt;El IPC de octubre informado por el INDEC fue 2,1%. Jubilados y salarios estatales pierden frente a la inflación.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Despidos masivos: una autopartista de Pacheco echó a 300 trabajadores]]></title>
+      <link>https://ejemplo.invalid/eldestape/nota-2?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 18:30:00 GMT</pubDate>
+      <category>Economía</category>
+      <description>&lt;p&gt;La autopartista de General Pacheco despidió a 300 empleados. Los obreros ocupan la planta en reclamo.&lt;/p&gt;</description>
+    </item>
+</channel></rss>

@@ -1,0 +1,19 @@
+{
+  "name": "noticias-ar",
+  "version": "1.0.0",
+  "description": "Agregador de noticias argentinas: la misma noticia contada por medios de distintas líneas editoriales",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "actualizar": "node scripts/actualizar.mjs",
+    "demo": "node test/crear-fixtures.mjs && node scripts/actualizar.mjs --demo",
+    "servir": "node scripts/servir.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

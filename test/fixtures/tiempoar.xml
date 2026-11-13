@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Tiempo Argentino (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[La CGT convocó a un paro general de 24 horas para frenar la reforma laboral]]></title>
+      <link>https://ejemplo.invalid/tiempoar/nota-1?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 14:12:00 GMT</pubDate>
+      <category>Sociedad</category>
+      <description>&lt;p&gt;Los gremios confederados fijaron la huelga general para el 27 de noviembre contra la reforma laboral.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Docentes universitarios realizan un paro de 48 horas en reclamo salarial]]></title>
+      <link>https://ejemplo.invalid/tiempoar/nota-2?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 21:12:00 GMT</pubDate>
+      <category>Educación</category>
+      <description>&lt;p&gt;Los gremios universitarios convocaron a un paro de 48 horas por la actualización salarial.&lt;/p&gt;</description>
+    </item>
+</channel></rss>

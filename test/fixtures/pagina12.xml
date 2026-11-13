@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Página/12 (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[La inflación de octubre fue 2,1% según el INDEC y los salarios siguen sin recuperarse]]></title>
+      <link>https://ejemplo.invalid/pagina12/nota-1?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 12:54:00 GMT</pubDate>
+      <category>Economía</category>
+      <description>&lt;p&gt;El INDEC difundió que el IPC de octubre fue de 2,1%. Los gremios advierten que los ingresos corren detrás de los precios.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[La CGT anunció un paro general de 24 horas contra la reforma laboral]]></title>
+      <link>https://ejemplo.invalid/pagina12/nota-2?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 14:00:00 GMT</pubDate>
+      <category>Política</category>
+      <description>&lt;p&gt;La central obrera definió una huelga general para el jueves 27 en rechazo a la reforma laboral que se debate en el Congreso.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Una autopartista de Pacheco despidió a 300 trabajadores y los obreros ocupan la planta]]></title>
+      <link>https://ejemplo.invalid/pagina12/nota-3?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 18:00:00 GMT</pubDate>
+      <category>Economía</category>
+      <description>&lt;p&gt;Los trabajadores de la autopartista de General Pacheco denunciaron 300 despidos y permanecen dentro de la fábrica.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title><![CDATA[Alerta amarilla por tormentas en el AMBA: qué dice el SMN]]></title>
+      <link>https://ejemplo.invalid/pagina12/nota-4?utm_source=rss</link>
+      <pubDate>Fri, 13 Nov 2026 20:18:00 GMT</pubDate>
+      <category>Sociedad</category>
+      <description>&lt;p&gt;El SMN anunció alerta amarilla por tormentas y ráfagas de 70 km/h en el AMBA.&lt;/p&gt;</description>
+    </item>
+</channel></rss>

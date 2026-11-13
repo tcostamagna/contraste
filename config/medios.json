@@ -1,0 +1,21 @@
+{
+  "_nota": "La posición de cada medio es una clasificación editorial aproximada y discutible. Cambiala acá: 'izquierda', 'centro' o 'derecha'. Si un feed deja de funcionar, la página Medios lo marca; corregí la URL acá.",
+  "medios": [
+    { "id": "pagina12", "nombre": "Página/12", "web": "https://www.pagina12.com.ar", "lado": "izquierda", "feeds": ["https://www.pagina12.com.ar/rss/portada"] },
+    { "id": "eldestape", "nombre": "El Destape", "web": "https://www.eldestapeweb.com", "lado": "izquierda", "feeds": ["https://www.eldestapeweb.com/rss/"] },
+    { "id": "tiempoar", "nombre": "Tiempo Argentino", "web": "https://www.tiempoar.com.ar", "lado": "izquierda", "feeds": ["https://www.tiempoar.com.ar/feed/"] },
+    { "id": "laizquierdadiario", "nombre": "La Izquierda Diario", "web": "https://www.laizquierdadiario.com", "lado": "izquierda", "feeds": ["https://www.laizquierdadiario.com/spip.php?page=backend"] },
+    { "id": "c5n", "nombre": "C5N", "web": "https://www.c5n.com", "lado": "izquierda", "feeds": ["https://www.c5n.com/rss/pages/home.xml"] },
+    { "id": "eldiarioar", "nombre": "elDiarioAR", "web": "https://www.eldiarioar.com", "lado": "izquierda", "feeds": ["https://www.eldiarioar.com/rss/"] },
+
+    { "id": "infobae", "nombre": "Infobae", "web": "https://www.infobae.com", "lado": "centro", "feeds": ["https://www.infobae.com/arc/outboundfeeds/rss/"] },
+    { "id": "perfil", "nombre": "Perfil", "web": "https://www.perfil.com", "lado": "centro", "feeds": ["https://www.perfil.com/feed"] },
+    { "id": "ambito", "nombre": "Ámbito", "web": "https://www.ambito.com", "lado": "centro", "feeds": ["https://www.ambito.com/rss/pages/home.xml"] },
+    { "id": "cronista", "nombre": "El Cronista", "web": "https://www.cronista.com", "lado": "centro", "feeds": ["https://www.cronista.com/arc/outboundfeeds/rss/?outputType=xml"] },
+
+    { "id": "clarin", "nombre": "Clarín", "web": "https://www.clarin.com", "lado": "derecha", "feeds": ["https://www.clarin.com/rss/lo-ultimo/"] },
+    { "id": "lanacion", "nombre": "La Nación", "web": "https://www.lanacion.com.ar", "lado": "derecha", "feeds": ["https://www.lanacion.com.ar/arc/outboundfeeds/rss/?outputType=xml"] },
+    { "id": "tn", "nombre": "TN", "web": "https://tn.com.ar", "lado": "derecha", "feeds": ["https://tn.com.ar/arc/outboundfeeds/rss/?outputType=xml"] },
+    { "id": "laprensa", "nombre": "La Prensa", "web": "https://www.laprensa.com.ar", "lado": "derecha", "feeds": ["https://www.laprensa.com.ar/rss/"] }
+  ]
+}
