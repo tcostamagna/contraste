@@ -17,6 +17,7 @@ import { slug } from '../lib/texto.mjs';
 import { idDeCanal, descargarVideos, asignarVideos } from '../lib/videos.mjs';
 import { asignarPorSimilitud } from '../lib/asignar.mjs';
 import { palabrasPorLado, cifrasPorMedio, esOpinion } from '../lib/lados.mjs';
+import { solidez } from '../lib/solidez.mjs';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEMO = process.argv.includes('--demo');
@@ -104,6 +105,17 @@ async function leerMedio(medio) {
   return { notas, errores: notas.length ? [] : errores, usados, opinion, errorOpinion };
 }
 
+/**
+ * Fecha de publicación de una nota. Varios medios cambian la fecha del RSS cada vez que editan la nota: se guarda la
+ * más vieja que vimos, así una nota de ayer retocada hoy no pasa por nueva. Sin fecha (o con fecha futura), se usa la
+ * primera vez que la vimos.
+ */
+function fechaDeNota(delFeed, previa) {
+  const valida = delFeed && Date.parse(delFeed) <= ahora + 3600e3 ? delFeed : null;
+  if (previa && (!valida || Date.parse(previa) < Date.parse(valida))) return previa;
+  return valida || new Date(ahora).toISOString();
+}
+
 async function cargarArchivo() {
   if (!existsSync(ARCHIVO)) return { articulos: {} };
   try {
@@ -138,6 +150,8 @@ function armarHistoria(grupo, mediosPorId) {
   const primero = arts[0];
   const ultima = arts[arts.length - 1];
   const nombres = Object.fromEntries(Object.values(mediosPorId).map((m) => [m.id, m.nombre]));
+  const cifras = cifrasPorMedio(arts, nombres);
+  const sol = solidez(arts, cobertura, cifras);
 
   return {
     id: grupo.id,
@@ -154,9 +168,12 @@ function armarHistoria(grupo, mediosPorId) {
     cobertura,
     soloCubre,
     primero: { medio: primero.medio, nombre: mediosPorId[primero.medio].nombre, lado: primero.lado, fecha: primero.fecha },
-    puntaje: Math.round((vistos.size * 10 + lados * 6 - Math.max(0, horasDesde(ultima.fecha)) * 0.8) * 10) / 10,
+    // La antigüedad se cuenta desde que empezó la noticia: una nota nueva sobre un tema de ayer no la vuelve «de hoy».
+    puntaje: Math.round((vistos.size * 10 + lados * 6 - Math.max(0, horasDesde(primero.fecha)) * 0.9 - (sol.relleno ? 25 : 0) + sol.puntaje * 0.1) * 10) / 10,
+    solidez: { puntaje: sol.puntaje, nivel: sol.nivel, etiqueta: sol.etiqueta, senales: sol.senales },
+    relleno: sol.relleno,
     palabras: vistos.size >= 2 ? palabrasPorLado(arts) : null,
-    cifras: cifrasPorMedio(arts, nombres),
+    cifras: cifras.map((c, i) => ({ ...c, veredicto: sol.cifras[i] })),
     articulos: arts.map((a) => ({
       medio: a.medio,
       nombre: mediosPorId[a.medio].nombre,
@@ -205,7 +222,7 @@ function oraciones(texto, max = 320) {
 /** «Ponete al día»: las noticias más cubiertas de las últimas 24 horas, con cómo la titula cada lado. */
 function armarHoy(historias) {
   const elegidas = [...historias]
-    .filter((h) => h.medios >= 3 && (DEMO || horasDesde(h.actualizado) <= 24))
+    .filter((h) => h.medios >= 3 && !h.relleno && (DEMO || horasDesde(h.fecha) <= 24))
     .sort((a, b) => b.puntaje - a.puntaje)
     .slice(0, 12);
   const bloques = elegidas.map((h) => {
@@ -223,6 +240,8 @@ function armarHoy(historias) {
       cobertura: h.cobertura,
       medios: h.medios,
       soloCubre: h.soloCubre,
+      solidez: h.solidez,
+      fecha: h.fecha,
       imagen: h.imagen,
     };
   });
@@ -262,7 +281,7 @@ async function main() {
         lado: m.lado,
         opinion: Boolean(n.opinion || previa?.opinion || esOpinion(n)),
         // Si el feed no trae fecha, se usa la primera vez que la vimos.
-        fecha: n.fecha && Date.parse(n.fecha) <= ahora + 3600e3 ? n.fecha : previa?.fecha || new Date(ahora).toISOString(),
+        fecha: fechaDeNota(n.fecha, previa?.fecha),
       };
     }
   }

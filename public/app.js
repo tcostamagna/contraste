@@ -22,8 +22,27 @@ function haceCuanto(iso) {
   const d = Math.round(h / 24);
   return d === 1 ? 'ayer' : `hace ${d} días`;
 }
-const hora = (iso) => new Date(iso).toLocaleString('es-AR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(/\.$/, '');
-const horaCorta = (iso) => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+const hora = (iso) => new Date(iso).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(/\.$/, '');
+const ZONA = 'America/Argentina/Buenos_Aires';
+const diaAR = (iso) => new Date(iso).toLocaleDateString('en-CA', { timeZone: ZONA });
+/** «Hoy 14:30», «Ayer 21:10» o «sáb 14 nov, 09:00», siempre en hora argentina. */
+function cuando(iso) {
+  if (!iso) return '';
+  const d = diaAR(iso);
+  const hoy = diaAR(Date.now());
+  const ayer = diaAR(Date.now() - 864e5);
+  const hhmm = new Date(iso).toLocaleTimeString('es-AR', { timeZone: ZONA, hour: '2-digit', minute: '2-digit' });
+  if (d === hoy) return `Hoy ${hhmm}`;
+  if (d === ayer) return `Ayer ${hhmm}`;
+  return new Date(iso).toLocaleString('es-AR', { timeZone: ZONA, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).replace(/\.$/, '');
+}
+/** Cuándo empezó la noticia y, si siguió otro día, que sigue. */
+function cuandoNoticia(h) {
+  const inicio = cuando(h.fecha);
+  return h.actualizado && diaAR(h.actualizado) !== diaAR(h.fecha) && diaAR(h.actualizado) === diaAR(Date.now()) ? `${inicio} · sigue hoy` : inicio;
+}
+const sello = (h) => (h.solidez ? `<span class="sello s-${h.solidez.nivel}" title="${esc(h.solidez.etiqueta)}: índice de solidez ${h.solidez.puntaje} de 100"><b>${h.solidez.puntaje}</b>${esc(h.solidez.etiqueta)}</span>` : '');
+const horaCorta = (iso) => new Date(iso).toLocaleTimeString('es-AR', { timeZone: ZONA, hour: '2-digit', minute: '2-digit' });
 
 const cache = {};
 function cargar(nombre) {
@@ -52,10 +71,10 @@ function tarjeta(h) {
   return `<a class="tarjeta" href="${enlaceFicha(h)}">
     ${h.imagen ? imagen(h.imagen, 'tarjeta-img') : sinImagen('tarjeta-sin-img')}
     <div class="tarjeta-cuerpo">
-      <div class="meta"><span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${haceCuanto(h.actualizado)}</span></div>
+      <div class="meta"><span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span></div>
       <h3>${esc(h.titular)}</h3>
       <div class="tarjeta-pie">
-        <div class="meta">${etiquetaCiego(h)}${h.videos?.length ? `<span class="etiqueta video">▶ ${plural(h.videos.length, 'video', 'videos')}</span>` : ''}${h.opiniones?.length ? `<span class="etiqueta video">✎ ${plural(h.opiniones.length, 'columna', 'columnas')}</span>` : ''}</div>
+        <div class="meta">${sello(h)}${etiquetaCiego(h)}${h.videos?.length ? `<span class="etiqueta video">▶ ${plural(h.videos.length, 'video', 'videos')}</span>` : ''}${h.opiniones?.length ? `<span class="etiqueta video">✎ ${plural(h.opiniones.length, 'columna', 'columnas')}</span>` : ''}</div>
         ${barra(h.cobertura)}
         <div class="meta"><span><b>${h.medios}</b> medios</span><span>·</span><span>primero: ${esc(h.primero.nombre)}</span></div>
       </div>
@@ -66,7 +85,7 @@ function tarjeta(h) {
 function filaSuelta(h) {
   const a = h.articulos[0];
   return `<a href="${esc(a.url)}" target="_blank" rel="noopener">
-    <div class="meta"><span class="punto ${a.lado}"></span><b>${esc(a.nombre)}</b><span>·</span><span>${esc(h.temaNombre)}</span><span>·</span><span>${haceCuanto(a.fecha)}</span></div>
+    <div class="meta"><span class="punto ${a.lado}"></span><b>${esc(a.nombre)}</b><span>·</span><span>${esc(h.temaNombre)}</span><span>·</span><span>${cuando(a.fecha)}</span></div>
     <h3>${esc(a.titulo)}</h3>
   </a>`;
 }
@@ -77,7 +96,7 @@ function columnaOpinion(c, historias) {
     <div class="autor"><span class="punto ${c.lado}"></span>${esc(c.nombre)}${c.autor ? ` · ${esc(c.autor)}` : ''}</div>
     <h3><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.titulo)}</a></h3>
     ${c.descripcion ? `<p>${esc(c.descripcion.slice(0, 220))}${c.descripcion.length > 220 ? '…' : ''}</p>` : ''}
-    <div class="meta">${haceCuanto(c.fecha)}</div>
+    <div class="meta">${cuando(c.fecha)}</div>
     ${noticia ? `<div class="sobre">Sobre: <a href="${enlaceFicha(noticia)}">${esc(noticia.titular)}</a></div>` : ''}
   </article>`;
 }
@@ -88,7 +107,7 @@ function tarjetaVideo(v, historia) {
       <img src="${esc(v.miniatura)}" alt="" loading="lazy" referrerpolicy="no-referrer">
       <span class="video-icono" aria-hidden="true">▶</span>
     </button>
-    <figcaption><span class="punto ${v.lado}"></span><b>${esc(v.nombre)}</b> · ${haceCuanto(v.fecha)}<br>${esc(v.titulo)}${historia ? `<br><a href="${enlaceFicha(historia)}">Ver la noticia →</a>` : ''}</figcaption>
+    <figcaption><span class="punto ${v.lado}"></span><b>${esc(v.nombre)}</b> · ${cuando(v.fecha)}<br>${esc(v.titulo)}${historia ? `<br><a href="${enlaceFicha(historia)}">Ver la noticia →</a>` : ''}</figcaption>
   </figure>`;
 }
 
@@ -180,7 +199,7 @@ async function portada() {
           <a class="principal${primera.imagen ? '' : ' sin-img'}" href="${enlaceFicha(primera)}">
             ${primera.imagen ? `<img src="${esc(primera.imagen)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('sin-img');this.remove()">` : ''}
             <div class="principal-texto">
-              <div class="meta"><span class="kicker">${esc(primera.temaNombre)}</span><span>·</span><span>${haceCuanto(primera.actualizado)}</span></div>
+              <div class="meta"><span class="kicker">${esc(primera.temaNombre)}</span><span>·</span><span>${cuandoNoticia(primera)}</span>${sello(primera)}</div>
               <h2>${esc(primera.titular)}</h2>
               ${primera.resumen ? `<p>${esc(primera.resumen.slice(0, 220))}${primera.resumen.length > 220 ? '…' : ''}</p>` : ''}
               ${barra(primera.cobertura, true)}
@@ -189,7 +208,7 @@ async function portada() {
           </a>
           <div class="laterales">${laterales.map((h) => `<a class="lateral-nota" href="${enlaceFicha(h)}">
             ${h.imagen ? `<img src="${esc(h.imagen)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'mini-sin-img'}))">` : sinImagen('mini-sin-img')}
-            <div><div class="meta"><span class="kicker">${esc(h.temaNombre)}</span></div><h3>${esc(h.titular)}</h3>${barra(h.cobertura)}</div>
+            <div><div class="meta"><span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuando(h.fecha)}</span></div><h3>${esc(h.titular)}</h3>${barra(h.cobertura)}</div>
           </a>`).join('')}</div>
         </div>`;
 
@@ -210,7 +229,7 @@ async function portada() {
           const col = (lado, lista) => `<div class="ciego-col ${lado}">
             <h3><span class="punto ${lado}"></span>Solo la cuenta la ${lado}</h3>
             <p>Si leés solo medios de ${lado === 'izquierda' ? 'derecha' : 'izquierda'}, esto no te llega.</p>
-            ${lista.length ? lista.map((h) => `<a class="ciego-nota" href="${enlaceFicha(h)}"><h4>${esc(h.titular)}</h4><div class="meta">${plural(h.medios, 'medio', 'medios')} · ${haceCuanto(h.actualizado)}</div></a>`).join('') : '<p>Nada por ahora.</p>'}
+            ${lista.length ? lista.map((h) => `<a class="ciego-nota" href="${enlaceFicha(h)}"><h4>${esc(h.titular)}</h4><div class="meta">${plural(h.medios, 'medio', 'medios')} · ${cuandoNoticia(h)}</div></a>`).join('') : '<p>Nada por ahora.</p>'}
           </div>`;
           html += seccion('Puntos ciegos', `<div class="ciegos">${col('izquierda', ciegosIzq)}${col('derecha', ciegosDer)}</div>`, { enlace: ['puntos-ciegos.html', 'Ver todos →'] });
         }
@@ -254,7 +273,7 @@ async function ciegos() {
     return `<div class="ciego-col ${lado}">
       <h3><span class="punto ${lado}"></span>Solo la cuenta la ${lado} (${lista.length})</h3>
       <p>Ningún medio de ${lado === 'izquierda' ? 'derecha' : 'izquierda'} la publicó.</p>
-      ${lista.length ? lista.map((h) => `<a class="ciego-nota" href="${enlaceFicha(h)}"><div class="meta"><span class="kicker">${esc(h.temaNombre)}</span></div><h4>${esc(h.titular)}</h4><div class="meta">${h.articulos.filter((a, i, arr) => arr.findIndex((x) => x.medio === a.medio) === i).map((a) => esc(a.nombre)).join(', ')} · ${haceCuanto(h.actualizado)}</div></a>`).join('') : '<p>Nada por ahora.</p>'}
+      ${lista.length ? lista.map((h) => `<a class="ciego-nota" href="${enlaceFicha(h)}"><div class="meta"><span class="kicker">${esc(h.temaNombre)}</span></div><h4>${esc(h.titular)}</h4><div class="meta">${h.articulos.filter((a, i, arr) => arr.findIndex((x) => x.medio === a.medio) === i).map((a) => esc(a.nombre)).join(', ')} · ${cuandoNoticia(h)}</div></a>`).join('') : '<p>Nada por ahora.</p>'}
     </div>`;
   };
   html += `<div class="ciegos">${col('izquierda')}${col('derecha')}</div>`;
@@ -337,7 +356,7 @@ async function ficha() {
   const columnas = LADOS.map(([l, n]) => {
     const arts = h.articulos.filter((a) => a.lado === l);
     return `<div class="columna"><h3><span class="punto ${l}"></span>${n} (${arts.length})</h3>
-      ${arts.length ? arts.map((a) => `<a class="articulo" href="${esc(a.url)}" target="_blank" rel="noopener"><div class="medio">${esc(a.nombre)} · ${haceCuanto(a.fecha)}</div><div class="titulo">${esc(a.titulo)}</div></a>`).join('') : `<p class="vacio">Ningún medio de ${n.toLowerCase()} la publicó.</p>`}
+      ${arts.length ? arts.map((a) => `<a class="articulo" href="${esc(a.url)}" target="_blank" rel="noopener"><div class="medio">${esc(a.nombre)} · ${cuando(a.fecha)}</div><div class="titulo">${esc(a.titulo)}</div></a>`).join('') : `<p class="vacio">Ningún medio de ${n.toLowerCase()} la publicó.</p>`}
     </div>`;
   }).join('');
 
@@ -350,16 +369,16 @@ async function ficha() {
   <div class="ficha">
     <article>
       <header class="ficha-cab">
-        <div class="meta"><a href="./?tema=${esc(h.tema)}" class="kicker">${esc(h.temaNombre)}</a><span>·</span><span>${hora(h.fecha)}</span><span>·</span><span>${plural(h.medios, 'medio', 'medios')}</span></div>
+        <div class="meta"><a href="./?tema=${esc(h.tema)}" class="kicker">${esc(h.temaNombre)}</a><span>·</span><span>Empezó ${cuando(h.fecha).replace(/^H/, 'h').replace(/^A/, 'a')}</span>${h.actualizado !== h.fecha ? `<span>·</span><span>última nota ${cuando(h.actualizado).replace(/^H/, 'h').replace(/^A/, 'a')}</span>` : ''}<span>·</span><span>${plural(h.medios, 'medio', 'medios')}</span></div>
         <h1>${esc(h.titular)}</h1>
-        ${etiquetaCiego(h)}
+        <div class="meta">${sello(h)}${etiquetaCiego(h)}</div>
         ${barra(h.cobertura, true)}
         ${leyenda(h.cobertura)}
         ${h.imagen ? `<img class="ficha-img" src="${esc(h.imagen)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
         ${h.resumen ? `<p class="bajada">${esc(h.resumen)}</p><p class="fuente">Titular y bajada de ${esc(titularDe.nombre)}.</p>` : ''}
       </header>
       ${seccion('Cómo la cuenta cada lado', `<div class="lados">${lados}</div>`, { sub: 'Qué titula cada medio y qué palabras elige cada lado.' })}
-      ${cifras.length ? seccion('Cifras en juego', `<div class="cifras">${cifras.map((c) => `<div class="cifra-fila"><div class="cifra-valor">${esc(c.cifra)}</div><div class="cifra-medios">${c.medios.map((m) => `<span><span class="punto ${m.lado}"></span>${esc(m.nombre)}</span>`).join('')}</div></div>`).join('')}</div>`, { sub: 'Los números que aparecen en los titulares y bajadas, y qué medio da cada uno.' }) : ''}
+      ${cifras.length ? seccion('Cifras en juego', `<div class="cifras">${cifras.map((c) => `<div class="cifra-fila"><div class="cifra-valor">${esc(c.cifra)}${c.veredicto ? `<span class="veredicto v-${c.veredicto.id}">${esc(c.veredicto.texto)}</span>` : ''}</div><div class="cifra-medios">${c.medios.map((m) => `<span><span class="punto ${m.lado}"></span>${esc(m.nombre)}</span>`).join('')}</div></div>`).join('')}</div>`, { sub: 'Los números que aparecen en los titulares y bajadas, y qué medio da cada uno.' }) : ''}
       ${h.opiniones?.length ? seccion('Qué opinan los columnistas', `<div class="columnas-op">${h.opiniones.map((c) => columnaOpinion(c)).join('')}</div>`, { sub: 'Columnas y editoriales sobre esta noticia.' }) : ''}
       ${h.videos?.length ? seccion('En video', `<div class="videos">${h.videos.map((v) => tarjetaVideo(v)).join('')}</div>`, { sub: 'Lo que publicaron los canales de los medios.' }) : ''}
       ${seccion('Qué publicó cada medio', `<div class="columnas">${columnas}</div>`)}
@@ -374,6 +393,13 @@ async function ficha() {
         ${barra(h.cobertura, true)}
         ${leyenda(h.cobertura)}
       </section>
+      ${h.solidez ? `<section class="caja solidez s-${h.solidez.nivel}">
+        <h2>¿Qué tan corroborada está?</h2>
+        <div class="solidez-cifra"><b>${h.solidez.puntaje}</b><span>de 100</span><em>${esc(h.solidez.etiqueta)}</em></div>
+        <div class="solidez-barra"><i style="width:${h.solidez.puntaje}%"></i></div>
+        <ul class="senales">${h.solidez.senales.map((x) => `<li class="${x.estado}"><span aria-hidden="true">${x.estado === 'ok' ? '✓' : x.estado === 'medio' ? '~' : '✗'}</span>${esc(x.texto)}</li>`).join('')}</ul>
+        <p class="nota-pie">No verificamos los hechos: medimos cuántos medios y de qué lados la cuentan, si las cifras coinciden, si citan fuentes identificables y si hablan de trascendidos.</p>
+      </section>` : ''}
       <section class="caja preguntas" id="preguntas" aria-label="Preguntas rápidas sobre esta noticia"></section>
       <section class="caja">
         <h2>Quién la publicó primero</h2>
@@ -405,6 +431,12 @@ function respuestas(h, catalogo) {
         : `<p><span class="punto ${l}"></span><b>${n}:</b> ningún medio la publicó.</p>`;
     }).join(''),
   });
+  if (h.solidez) {
+    lista.push({
+      pregunta: '¿Está corroborada?',
+      respuesta: `<p><b>${esc(h.solidez.etiqueta)}</b> (${h.solidez.puntaje} de 100).</p><ul>${h.solidez.senales.map((x) => `<li>${x.estado === 'ok' ? '✓' : x.estado === 'medio' ? '~' : '✗'} ${esc(x.texto)}</li>`).join('')}</ul>`,
+    });
+  }
   const presentes = new Set(h.articulos.map((a) => a.medio));
   const ausentes = catalogo.filter((m) => m.ok && !presentes.has(m.id));
   lista.push({
@@ -471,7 +503,7 @@ async function hoy() {
           <div class="hoy-cuerpo">
             <div class="hoy-num" aria-hidden="true">${i + 1}</div>
             <div>
-              <div class="meta"><span class="kicker">${esc(b.tema || '')}</span><span>·</span><span>${plural(b.medios, 'medio', 'medios')}</span>${b.soloCubre ? `<span class="etiqueta ${b.soloCubre}">Solo la cuenta la ${b.soloCubre}</span>` : ''}</div>
+              <div class="meta"><span class="kicker">${esc(b.tema || '')}</span><span>·</span><span>${cuando(b.fecha)}</span><span>·</span><span>${plural(b.medios, 'medio', 'medios')}</span>${sello(b)}${b.soloCubre ? `<span class="etiqueta ${b.soloCubre}">Solo la cuenta la ${b.soloCubre}</span>` : ''}</div>
               <h2>${esc(b.titular)}</h2>
               ${b.texto ? `<p>${esc(b.texto)}</p>` : ''}
               ${b.mas ? `<div class="otra-mirada ${b.mas.lado}"><b>Otra mirada · ${esc(b.mas.nombre)}</b>${esc(b.mas.texto)}</div>` : ''}
