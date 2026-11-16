@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Opinión (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[Inflación de octubre: un dato que el Gobierno necesitaba]]></title>
+      <link>https://ejemplo.invalid/clarin/opinion/columna-1</link>
+      <pubDate>Fri, 13 Nov 2026 15:48:00 GMT</pubDate>
+      <dc:creator><![CDATA[Columnista de ejemplo B]]></dc:creator>
+      <description>La baja de la inflación de octubre le da aire al programa económico, aunque los salarios todavía no lo sienten.</description>
+    </item>
+</channel></rss>

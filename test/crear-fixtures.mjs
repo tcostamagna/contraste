@@ -84,4 +84,23 @@ for (const medio of Object.keys(NOMBRES)) {
 `;
   await writeFile(path.join(DIR, `${medio}.xml`), xml);
 }
+// Columnas de opinión de EJEMPLO (inventadas): [medio, horas, título, bajada, autor]
+const OPINION = [
+  ['pagina12', 3.5, 'La inflación baja, pero la heladera sigue vacía', 'El dato del INDEC no alcanza para explicar lo que viven los jubilados y los trabajadores con la inflación de octubre.', 'Columnista de ejemplo A'],
+  ['clarin', 3.8, 'Inflación de octubre: un dato que el Gobierno necesitaba', 'La baja de la inflación de octubre le da aire al programa económico, aunque los salarios todavía no lo sienten.', 'Columnista de ejemplo B'],
+  ['lanacion', 4.1, 'El paro de la CGT y la reforma laboral: una pulseada vieja', 'El paro general de la CGT repite una escena conocida frente a cada reforma laboral.', 'Columnista de ejemplo C'],
+  ['infobae', 4.3, 'Qué está en juego en el Presupuesto 2027', 'Los gobernadores y el oficialismo negocian en Diputados un Presupuesto 2027 con recortes.', 'Columnista de ejemplo D'],
+  ['eldiarioar', 4.5, 'Pacheco: los 300 despidos que nadie quiere mirar', 'La autopartista de General Pacheco y los obreros que ocupan la planta muestran otra cara de la economía.', 'Columnista de ejemplo E'],
+];
+for (const medio of [...new Set(OPINION.map((o) => o[0]))]) {
+  const items = OPINION.filter((o) => o[0] === medio).map(([, horas, titulo, bajada, autor], i) => `
+    <item>
+      <title><![CDATA[${titulo}]]></title>
+      <link>https://ejemplo.invalid/${medio}/opinion/columna-${i + 1}</link>
+      <pubDate>${h(horas)}</pubDate>
+      <dc:creator><![CDATA[${autor}]]></dc:creator>
+      <description>${esc(bajada)}</description>
+    </item>`).join('');
+  await writeFile(path.join(DIR, `${medio}-opinion.xml`), `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>Opinión (EJEMPLO)</title>${items}\n</channel></rss>\n`);
+}
 console.log(`Feeds de ejemplo escritos en ${DIR}`);

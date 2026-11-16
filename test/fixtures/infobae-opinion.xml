@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Opinión (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[Qué está en juego en el Presupuesto 2027]]></title>
+      <link>https://ejemplo.invalid/infobae/opinion/columna-1</link>
+      <pubDate>Fri, 13 Nov 2026 16:18:00 GMT</pubDate>
+      <dc:creator><![CDATA[Columnista de ejemplo D]]></dc:creator>
+      <description>Los gobernadores y el oficialismo negocian en Diputados un Presupuesto 2027 con recortes.</description>
+    </item>
+</channel></rss>

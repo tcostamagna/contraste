@@ -10,9 +10,6 @@
     "servir": "node scripts/servir.mjs",
     "test": "node --test test/*.test.mjs"
   },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^1.8.0"
-  },
   "engines": {
     "node": ">=20"
   }

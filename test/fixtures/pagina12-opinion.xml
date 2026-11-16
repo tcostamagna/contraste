@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel><title>Opinión (EJEMPLO)</title>
+    <item>
+      <title><![CDATA[La inflación baja, pero la heladera sigue vacía]]></title>
+      <link>https://ejemplo.invalid/pagina12/opinion/columna-1</link>
+      <pubDate>Fri, 13 Nov 2026 15:30:00 GMT</pubDate>
+      <dc:creator><![CDATA[Columnista de ejemplo A]]></dc:creator>
+      <description>El dato del INDEC no alcanza para explicar lo que viven los jubilados y los trabajadores con la inflación de octubre.</description>
+    </item>
+</channel></rss>

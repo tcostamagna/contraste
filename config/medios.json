@@ -1,5 +1,5 @@
 {
-  "_nota": "La posición de cada medio es una clasificación editorial aproximada y discutible. Cambiala acá: 'izquierda', 'centro' o 'derecha'. Si un feed deja de funcionar, la página Medios lo marca; corregí la URL acá. 'alternativas' se prueban en orden solo si fallan todos los 'feeds'; la página Medios muestra cuál funcionó.",
+  "_nota": "La posición de cada medio es una clasificación editorial aproximada y discutible: 'izquierda', 'centro' o 'derecha'. 'feeds' son las noticias; 'alternativas' se prueban en orden solo si fallan todos los 'feeds'; 'opinion' son feeds de columnas y editoriales. La página Medios muestra qué funcionó.",
   "medios": [
     {
       "id": "pagina12",
@@ -8,6 +8,9 @@
       "lado": "izquierda",
       "feeds": [
         "https://www.pagina12.com.ar/arc/outboundfeeds/rss/?outputType=xml"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:pagina12.com.ar/secciones/contratapa+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -20,6 +23,9 @@
       ],
       "alternativas": [
         "https://news.google.com/rss/search?q=site:eldestapeweb.com+when:2d&hl=es-419&gl=AR&ceid=AR:es-419"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:eldestapeweb.com/opinion+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -29,6 +35,9 @@
       "lado": "izquierda",
       "feeds": [
         "https://www.tiempoar.com.ar/feed/"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:tiempoar.com.ar/ta_article+opinión+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -56,6 +65,9 @@
       "lado": "izquierda",
       "feeds": [
         "https://www.eldiarioar.com/rss/"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:eldiarioar.com/opinion+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -65,6 +77,9 @@
       "lado": "centro",
       "feeds": [
         "https://www.infobae.com/arc/outboundfeeds/rss/"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:infobae.com/opinion+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -74,6 +89,9 @@
       "lado": "centro",
       "feeds": [
         "https://www.perfil.com/feed"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:perfil.com/columnistas+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -83,6 +101,9 @@
       "lado": "centro",
       "feeds": [
         "https://www.ambito.com/rss/pages/home.xml"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:ambito.com/opiniones+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -101,6 +122,9 @@
       "lado": "derecha",
       "feeds": [
         "https://www.clarin.com/rss/lo-ultimo/"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:clarin.com/opinion+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -110,6 +134,9 @@
       "lado": "derecha",
       "feeds": [
         "https://www.lanacion.com.ar/arc/outboundfeeds/rss/?outputType=xml"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:lanacion.com.ar/opinion+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     },
     {
@@ -131,6 +158,9 @@
       ],
       "alternativas": [
         "https://news.google.com/rss/search?q=site:laprensa.com.ar+when:2d&hl=es-419&gl=AR&ceid=AR:es-419"
+      ],
+      "opinion": [
+        "https://news.google.com/rss/search?q=site:laprensa.com.ar/opinion+when:3d&hl=es-419&gl=AR&ceid=AR:es-419"
       ]
     }
   ]

@@ -4,7 +4,7 @@
 //   node scripts/actualizar.mjs          → descarga real
 //   node scripts/actualizar.mjs --demo   → usa los feeds de ejemplo de test/fixtures (sin red)
 //
-// Variables: ANTHROPIC_API_KEY (opcional, activa los resúmenes), MAX_RESUMENES (por corrida, 15 por defecto).
+// No usa servicios pagos: todo sale de los RSS públicos de los medios y de sus canales de YouTube.
 
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -14,8 +14,9 @@ import { leerFeed } from '../lib/rss.mjs';
 import { agrupar } from '../lib/agrupar.mjs';
 import { temaDe, nombreTema, TEMAS } from '../lib/temas.mjs';
 import { slug } from '../lib/texto.mjs';
-import { resumir, resumirDia, resumenDisponible, MODELO, VERSION_RESUMEN } from '../lib/resumir.mjs';
 import { idDeCanal, descargarVideos, asignarVideos } from '../lib/videos.mjs';
+import { asignarPorSimilitud } from '../lib/asignar.mjs';
+import { palabrasPorLado, cifrasPorMedio, esOpinion } from '../lib/lados.mjs';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DEMO = process.argv.includes('--demo');
@@ -23,11 +24,12 @@ const ARCHIVO = path.join(RAIZ, 'datos', DEMO ? 'archivo-demo.json' : 'archivo.j
 const SALIDA = path.join(RAIZ, 'public', 'datos');
 const HORAS_ARCHIVO = 72; // cuánto se guarda cada nota
 const HORAS_PORTADA = 48; // qué notas entran a la portada
-const MAX_RESUMENES = Number(process.env.MAX_RESUMENES ?? 15);
 const LADOS = ['izquierda', 'centro', 'derecha'];
+const PALABRAS_POR_MINUTO = 200;
 
 const ahora = Date.now();
 const log = (...a) => console.log(...a);
+const horasDesde = (iso) => (ahora - Date.parse(iso)) / 3600e3;
 
 function limpiarUrl(u) {
   try {
@@ -50,8 +52,9 @@ async function descargar(url) {
   return r.text();
 }
 
-async function leerUno(medio, feed) {
-  const xml = DEMO ? await readFile(path.join(RAIZ, 'test', 'fixtures', `${medio.id}.xml`), 'utf8') : await descargar(feed);
+async function leerUno(medio, feed, tipo = 'noticias') {
+  const ejemplo = path.join(RAIZ, 'test', 'fixtures', tipo === 'opinion' ? `${medio.id}-opinion.xml` : `${medio.id}.xml`);
+  const xml = DEMO ? await readFile(ejemplo, 'utf8') : await descargar(feed);
   let items = leerFeed(xml);
   // Google Noticias agrega « - Nombre del medio» al final del titular y la bajada repite el titular.
   if (feed.includes('news.google.com')) {
@@ -86,21 +89,31 @@ async function leerMedio(medio) {
       }
     }
   }
-  return { notas, errores: notas.length ? [] : errores, usados };
+  // Columnas de opinión: feeds propios o notas del feed general que están en la sección de opinión.
+  let opinion = 0;
+  let errorOpinion = '';
+  for (const feed of medio.opinion || []) {
+    try {
+      const items = await leerUno(medio, feed, 'opinion');
+      notas.push(...items.map((n) => ({ ...n, opinion: true })));
+      opinion += items.length;
+    } catch (e) {
+      if (!(DEMO && e.code === 'ENOENT')) errorOpinion = e.message;
+    }
+  }
+  return { notas, errores: notas.length ? [] : errores, usados, opinion, errorOpinion };
 }
 
 async function cargarArchivo() {
-  if (!existsSync(ARCHIVO)) return { articulos: {}, resumenes: {} };
+  if (!existsSync(ARCHIVO)) return { articulos: {} };
   try {
     return JSON.parse(await readFile(ARCHIVO, 'utf8'));
   } catch {
-    return { articulos: {}, resumenes: {} };
+    return { articulos: {} };
   }
 }
 
-const horasDesde = (iso) => (ahora - Date.parse(iso)) / 3600e3;
-
-function armarHistoria(grupo, mediosPorId, resumen) {
+function armarHistoria(grupo, mediosPorId) {
   const arts = grupo.articulos;
   const cobertura = { izquierda: 0, centro: 0, derecha: 0 };
   const vistos = new Set();
@@ -118,22 +131,20 @@ function armarHistoria(grupo, mediosPorId, resumen) {
     if (cobertura.derecha >= 2 && cobertura.izquierda === 0) soloCubre = 'derecha';
   }
 
-  // Sin resumen de IA, el titular sale de la nota más representativa, preferentemente de un medio de centro.
-  const deCentro = arts.filter((a) => a.lado === 'centro');
+  // El titular sale de la nota más representativa, preferentemente de un medio de centro y con bajada.
+  const deCentro = arts.filter((a) => a.lado === 'centro' && a.descripcion);
   const base = deCentro.includes(grupo.representativo) || !deCentro.length ? grupo.representativo : deCentro[0];
+  const resumen = base.descripcion || arts.find((a) => a.descripcion)?.descripcion || '';
   const primero = arts[0];
   const ultima = arts[arts.length - 1];
-  const titular = resumen?.titular || base.titulo;
+  const nombres = Object.fromEntries(Object.values(mediosPorId).map((m) => [m.id, m.nombre]));
 
   return {
     id: grupo.id,
-    slug: slug(titular),
-    titular,
-    resumen: resumen?.resumen || base.descripcion || '',
-    hechos: resumen?.hechos || [],
-    enfoques: resumen?.enfoques || null,
-    respuestas: resumen?.respuestas || null,
-    ia: Boolean(resumen),
+    slug: slug(base.titulo),
+    titular: base.titulo,
+    titularDe: base.medio,
+    resumen,
     tema,
     temaNombre: nombreTema(tema),
     fecha: primero.fecha,
@@ -144,6 +155,8 @@ function armarHistoria(grupo, mediosPorId, resumen) {
     soloCubre,
     primero: { medio: primero.medio, nombre: mediosPorId[primero.medio].nombre, lado: primero.lado, fecha: primero.fecha },
     puntaje: Math.round((vistos.size * 10 + lados * 6 - Math.max(0, horasDesde(ultima.fecha)) * 0.8) * 10) / 10,
+    palabras: vistos.size >= 2 ? palabrasPorLado(arts) : null,
+    cifras: cifrasPorMedio(arts, nombres),
     articulos: arts.map((a) => ({
       medio: a.medio,
       nombre: mediosPorId[a.medio].nombre,
@@ -154,103 +167,6 @@ function armarHistoria(grupo, mediosPorId, resumen) {
       fecha: a.fecha,
     })),
   };
-}
-
-/** Firma de la cobertura: si cambia mucho, el resumen se rehace. */
-const firma = (g) => [...new Set(g.articulos.map((a) => a.medio))].sort().join(',');
-
-function necesitaResumen(previo, g) {
-  if (!previo || previo.version !== VERSION_RESUMEN) return true;
-  const antes = previo.firma.split(',');
-  const ahoraM = firma(g).split(',');
-  return ahoraM.length >= antes.length + 2; // se sumaron al menos dos medios desde el último resumen
-}
-
-async function main() {
-  const { medios } = JSON.parse(await readFile(path.join(RAIZ, 'config', 'medios.json'), 'utf8'));
-  const mediosPorId = Object.fromEntries(medios.map((m) => [m.id, m]));
-  const archivo = await cargarArchivo();
-
-  // 1. Descarga
-  const estado = {};
-  const resultados = await Promise.all(medios.map(async (m) => [m, await leerMedio(m)]));
-  let nuevas = 0;
-  for (const [m, { notas, errores, usados }] of resultados) {
-    estado[m.id] = { ok: notas.length > 0, notas: notas.length, errores, feeds: usados, revisado: new Date(ahora).toISOString() };
-    const alternativa = usados.find((u) => !m.feeds.includes(u));
-    log(`${notas.length ? '✓' : '✗'} ${m.nombre.padEnd(20)} ${String(notas.length).padStart(3)} notas${alternativa ? `  (alternativa: ${alternativa})` : ''}${errores.length ? '  ' + errores.join(' | ') : ''}`);
-    for (const n of notas) {
-      const url = limpiarUrl(n.url);
-      const previa = archivo.articulos[url];
-      if (!previa) nuevas++;
-      archivo.articulos[url] = {
-        ...n,
-        url,
-        medio: m.id,
-        lado: m.lado,
-        // Si el feed no trae fecha, se usa la primera vez que la vimos.
-        fecha: n.fecha && Date.parse(n.fecha) <= ahora + 3600e3 ? n.fecha : previa?.fecha || new Date(ahora).toISOString(),
-      };
-    }
-  }
-
-  // 2. Limpieza del archivo
-  for (const [url, a] of Object.entries(archivo.articulos)) {
-    if (horasDesde(a.fecha) > HORAS_ARCHIVO || !mediosPorId[a.medio]) delete archivo.articulos[url];
-    else a.lado = mediosPorId[a.medio].lado; // por si cambió la clasificación del medio
-  }
-
-  // 3. Agrupar
-  const recientes = Object.values(archivo.articulos).filter((a) => DEMO || horasDesde(a.fecha) <= HORAS_PORTADA);
-  const grupos = agrupar(recientes);
-  log(`\n${recientes.length} notas recientes (${nuevas} nuevas) → ${grupos.length} grupos, ${grupos.filter((g) => new Set(g.articulos.map((a) => a.medio)).size >= 2).length} con 2 medios o más`);
-
-  // 4. Resúmenes con IA para las noticias más cubiertas
-  const resumenes = archivo.resumenes || {};
-  const multi = grupos.filter((g) => new Set(g.articulos.map((a) => a.medio)).size >= 3)
-    .sort((a, b) => new Set(b.articulos.map((x) => x.medio)).size - new Set(a.articulos.map((x) => x.medio)).size);
-  if (resumenDisponible() && MAX_RESUMENES > 0) {
-    const pendientes = multi.filter((g) => necesitaResumen(resumenes[g.id], g)).slice(0, MAX_RESUMENES);
-    log(`Resumiendo ${pendientes.length} noticias con ${MODELO}…`);
-    for (const g of pendientes) {
-      try {
-        const datos = await resumir(g.articulos.map((a) => ({ ...a, medioNombre: mediosPorId[a.medio].nombre })));
-        resumenes[g.id] = { firma: firma(g), datos, version: VERSION_RESUMEN, fecha: new Date().toISOString() };
-      } catch (e) {
-        log(`  ✗ ${g.articulos[0].titulo.slice(0, 60)}…: ${e.message}`);
-      }
-    }
-  } else if (!resumenDisponible()) {
-    log('Sin ANTHROPIC_API_KEY: titulares tomados de los medios, sin resúmenes.');
-  }
-  const idsVivos = new Set(grupos.map((g) => g.id));
-  for (const id of Object.keys(resumenes)) if (!idsVivos.has(id)) delete resumenes[id];
-  archivo.resumenes = resumenes;
-
-  // 5. Historias para el sitio
-  const historias = grupos.map((g) => armarHistoria(g, mediosPorId, resumenes[g.id]?.datos));
-  const conVarios = historias.filter((h) => h.medios >= 2).sort((a, b) => b.puntaje - a.puntaje).slice(0, 200);
-  const sueltas = historias.filter((h) => h.medios < 2).sort((a, b) => Date.parse(b.fecha) - Date.parse(a.fecha)).slice(0, 80);
-
-  // 6. Videos de los canales de YouTube de los medios
-  const estadoVideos = DEMO ? [] : await videosDeMedios(archivo, mediosPorId, conVarios);
-
-  // 7. Hoy en 15 minutos
-  const hoy = await armarHoy(archivo, conVarios);
-
-  await mkdir(SALIDA, { recursive: true });
-  await mkdir(path.dirname(ARCHIVO), { recursive: true });
-  const generado = new Date(ahora).toISOString();
-  await writeFile(path.join(SALIDA, 'hoy.json'), JSON.stringify({ generado, demo: DEMO, ...hoy }));
-  await writeFile(path.join(SALIDA, 'historias.json'), JSON.stringify({ generado, demo: DEMO, temas: TEMAS.map(({ id, nombre }) => ({ id, nombre })), historias: conVarios, sueltas }));
-  await writeFile(path.join(SALIDA, 'medios.json'), JSON.stringify({
-    generado,
-    demo: DEMO,
-    medios: medios.map((m) => ({ id: m.id, nombre: m.nombre, web: m.web, lado: m.lado, ...estado[m.id] })),
-    videos: estadoVideos,
-  }));
-  await writeFile(ARCHIVO, JSON.stringify(archivo));
-  log(`Listo: ${conVarios.length} noticias con varios medios y ${sueltas.length} de un solo medio en public/datos/.`);
 }
 
 async function videosDeMedios(archivo, mediosPorId, historias) {
@@ -275,42 +191,133 @@ async function videosDeMedios(archivo, mediosPorId, historias) {
   return estado;
 }
 
-const PALABRAS_POR_MINUTO = 200;
+/** Primeras oraciones de un texto, hasta un máximo de caracteres. */
+function oraciones(texto, max = 320) {
+  const partes = String(texto || '').match(/[^.!?]+[.!?]+(\s|$)/g) || [texto || ''];
+  let salida = '';
+  for (const p of partes) {
+    if ((salida + p).length > max && salida) break;
+    salida += p;
+  }
+  return salida.trim();
+}
 
-async function armarHoy(archivo, historias) {
-  // Las más importantes del momento: preferentemente cubiertas por los tres lados.
+/** «Ponete al día»: las noticias más cubiertas de las últimas 24 horas, con cómo la titula cada lado. */
+function armarHoy(historias) {
   const elegidas = [...historias]
-    .filter((h) => h.medios >= 3 && horasDesde(h.actualizado) <= 24)
+    .filter((h) => h.medios >= 3 && (DEMO || horasDesde(h.actualizado) <= 24))
     .sort((a, b) => b.puntaje - a.puntaje)
-    .slice(0, 10);
-  if (!elegidas.length) return { ia: false, titulo: 'Hoy en 15 minutos', intro: 'Todavía no hay noticias publicadas por varios medios.', bloques: [], cierre: '', minutos: 0 };
-  const porId = Object.fromEntries(elegidas.map((h) => [h.id, h]));
-  const ids = elegidas.map((h) => h.id);
-  const meta = (h) => ({ tema: h.temaNombre, cobertura: h.cobertura, medios: h.medios, imagen: h.imagen });
+    .slice(0, 12);
+  const bloques = elegidas.map((h) => {
+    const otraBajada = h.articulos.find((a) => a.descripcion && a.lado !== h.articulos.find((x) => x.titulo === h.titular)?.lado && a.descripcion !== h.resumen);
+    return {
+      id: h.id,
+      titular: h.titular,
+      texto: oraciones(h.resumen),
+      mas: otraBajada ? { nombre: otraBajada.nombre, lado: otraBajada.lado, texto: oraciones(otraBajada.descripcion, 220) } : null,
+      lados: Object.fromEntries(LADOS.map((l) => {
+        const a = h.articulos.find((x) => x.lado === l);
+        return [l, a ? { nombre: a.nombre, titulo: a.titulo } : null];
+      })),
+      tema: h.temaNombre,
+      cobertura: h.cobertura,
+      medios: h.medios,
+      soloCubre: h.soloCubre,
+      imagen: h.imagen,
+    };
+  });
+  const temas = [...new Set(bloques.map((b) => b.tema))].slice(0, 4);
+  const palabras = bloques.flatMap((b) => [b.titular, b.texto, b.mas?.texto, ...Object.values(b.lados).map((x) => x?.titulo)]).join(' ').split(/\s+/).length;
+  return {
+    titulo: 'Lo importante de hoy',
+    intro: bloques.length
+      ? `Las ${bloques.length} noticias que más medios están contando ahora${temas.length ? `: ${temas.join(', ').toLowerCase()}` : ''}. En cada una, cómo la titula cada lado.`
+      : 'Todavía no hay noticias publicadas por varios medios.',
+    bloques,
+    minutos: Math.max(1, Math.round(palabras / PALABRAS_POR_MINUTO)),
+  };
+}
 
-  let base;
-  const previo = archivo.hoy;
-  const cambiaron = previo ? ids.filter((id) => !previo.ids.includes(id)).length : Infinity;
-  const horasPrevio = previo ? horasDesde(previo.fecha) : Infinity;
-  if (resumenDisponible() && !DEMO && (cambiaron >= 3 || horasPrevio >= 3)) {
-    try {
-      log('Escribiendo «Hoy en 15 minutos»…');
-      const dia = await resumirDia(elegidas);
-      archivo.hoy = { ids, fecha: new Date().toISOString(), dia };
-    } catch (e) {
-      log(`  ✗ Hoy en 15 minutos: ${e.message}`);
+async function main() {
+  const { medios } = JSON.parse(await readFile(path.join(RAIZ, 'config', 'medios.json'), 'utf8'));
+  const mediosPorId = Object.fromEntries(medios.map((m) => [m.id, m]));
+  const archivo = await cargarArchivo();
+
+  // 1. Descarga
+  const estado = {};
+  const resultados = await Promise.all(medios.map(async (m) => [m, await leerMedio(m)]));
+  let nuevas = 0;
+  for (const [m, { notas, errores, usados, opinion, errorOpinion }] of resultados) {
+    estado[m.id] = { ok: notas.length > 0, notas: notas.length, errores, feeds: usados, opinion, errorOpinion, revisado: new Date(ahora).toISOString() };
+    const alternativa = usados.find((u) => !m.feeds.includes(u));
+    log(`${notas.length ? '✓' : '✗'} ${m.nombre.padEnd(20)} ${String(notas.length).padStart(3)} notas${m.opinion ? ` (${opinion} de opinión${errorOpinion ? `, error: ${errorOpinion}` : ''})` : ''}${alternativa ? `  (alternativa: ${alternativa})` : ''}${errores.length ? '  ' + errores.join(' | ') : ''}`);
+    for (const n of notas) {
+      const url = limpiarUrl(n.url);
+      const previa = archivo.articulos[url];
+      if (!previa) nuevas++;
+      archivo.articulos[url] = {
+        ...n,
+        url,
+        medio: m.id,
+        lado: m.lado,
+        opinion: Boolean(n.opinion || previa?.opinion || esOpinion(n)),
+        // Si el feed no trae fecha, se usa la primera vez que la vimos.
+        fecha: n.fecha && Date.parse(n.fecha) <= ahora + 3600e3 ? n.fecha : previa?.fecha || new Date(ahora).toISOString(),
+      };
     }
   }
-  if (resumenDisponible() && archivo.hoy?.dia) {
-    const d = archivo.hoy.dia;
-    base = { ia: true, escrito: archivo.hoy.fecha, titulo: d.titulo, intro: d.intro, cierre: d.cierre,
-      bloques: d.bloques.filter((b) => porId[b.id] || historias.some((h) => h.id === b.id)).map((b) => ({ ...b, ...meta(porId[b.id] || historias.find((h) => h.id === b.id)) })) };
-  } else {
-    base = { ia: false, titulo: 'Lo más importante del momento', intro: 'Las noticias que más medios están publicando ahora, de los tres lados.', cierre: '',
-      bloques: elegidas.map((h) => ({ id: h.id, titular: h.titular, texto: h.resumen, porQueImporta: '', ...meta(h) })) };
+
+  // 2. Limpieza del archivo (y de datos de versiones anteriores)
+  delete archivo.resumenes;
+  delete archivo.hoy;
+  for (const [url, a] of Object.entries(archivo.articulos)) {
+    if (horasDesde(a.fecha) > HORAS_ARCHIVO || !mediosPorId[a.medio]) delete archivo.articulos[url];
+    else a.lado = mediosPorId[a.medio].lado; // por si cambió la clasificación del medio
   }
-  const palabrasTotales = [base.intro, base.cierre, ...base.bloques.flatMap((b) => [b.titular, b.texto, b.porQueImporta])].join(' ').split(/\s+/).length;
-  return { ...base, minutos: Math.max(1, Math.round(palabrasTotales / PALABRAS_POR_MINUTO)) };
+
+  // 3. Agrupar las noticias (las columnas de opinión van aparte)
+  const todas = Object.values(archivo.articulos);
+  const recientes = todas.filter((a) => !a.opinion && (DEMO || horasDesde(a.fecha) <= HORAS_PORTADA));
+  const grupos = agrupar(recientes);
+  log(`\n${recientes.length} notas recientes (${nuevas} nuevas) → ${grupos.length} grupos, ${grupos.filter((g) => new Set(g.articulos.map((a) => a.medio)).size >= 2).length} con 2 medios o más`);
+
+  // 4. Historias para el sitio
+  const historias = grupos.map((g) => armarHistoria(g, mediosPorId));
+  const conVarios = historias.filter((h) => h.medios >= 2).sort((a, b) => b.puntaje - a.puntaje).slice(0, 200);
+  const sueltas = historias.filter((h) => h.medios < 2).sort((a, b) => Date.parse(b.fecha) - Date.parse(a.fecha)).slice(0, 80);
+
+  // 5. Opinión: columnas y editoriales, asignadas a la noticia de la que hablan
+  const columnas = todas
+    .filter((a) => a.opinion)
+    .sort((a, b) => Date.parse(b.fecha) - Date.parse(a.fecha))
+    .slice(0, 150)
+    .map((a) => ({ medio: a.medio, nombre: mediosPorId[a.medio].nombre, lado: a.lado, titulo: a.titulo, descripcion: a.descripcion, autor: a.autor || '', url: a.url, fecha: a.fecha }));
+  const conNoticia = asignarPorSimilitud(conVarios, columnas, 'opiniones', { umbral: 0.25, maxPorHistoria: 6 });
+  const noticiaDe = new Map(conNoticia.map((c) => [c.url, c.historia]));
+  for (const c of columnas) c.historia = noticiaDe.get(c.url) || null;
+  log(`Opinión: ${columnas.length} columnas, ${conNoticia.length} asociadas a una noticia`);
+
+  // 6. Videos de los canales de YouTube de los medios
+  const estadoVideos = DEMO ? [] : await videosDeMedios(archivo, mediosPorId, conVarios);
+
+  // 7. Ponete al día
+  const hoy = armarHoy(conVarios);
+
+  await mkdir(SALIDA, { recursive: true });
+  await mkdir(path.dirname(ARCHIVO), { recursive: true });
+  const generado = new Date(ahora).toISOString();
+  const catalogo = medios.map((m) => ({ id: m.id, nombre: m.nombre, lado: m.lado, ok: estado[m.id].ok }));
+  await writeFile(path.join(SALIDA, 'historias.json'), JSON.stringify({ generado, demo: DEMO, temas: TEMAS.map(({ id, nombre }) => ({ id, nombre })), medios: catalogo, historias: conVarios, sueltas }));
+  await writeFile(path.join(SALIDA, 'hoy.json'), JSON.stringify({ generado, demo: DEMO, ...hoy }));
+  await writeFile(path.join(SALIDA, 'opinion.json'), JSON.stringify({ generado, demo: DEMO, columnas }));
+  await writeFile(path.join(SALIDA, 'medios.json'), JSON.stringify({
+    generado,
+    demo: DEMO,
+    medios: medios.map((m) => ({ id: m.id, nombre: m.nombre, web: m.web, lado: m.lado, ...estado[m.id] })),
+    videos: estadoVideos,
+  }));
+  await writeFile(ARCHIVO, JSON.stringify(archivo));
+  log(`Listo: ${conVarios.length} noticias con varios medios, ${sueltas.length} de un solo medio y ${columnas.length} columnas en public/datos/.`);
 }
 
 main().catch((e) => {

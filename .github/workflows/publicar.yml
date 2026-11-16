@@ -37,7 +37,7 @@ jobs:
 
       - run: npm test
 
-      # El archivo de notas de las últimas 72 h y los resúmenes ya hechos pasan de una corrida a la siguiente.
+      # El archivo de notas de las últimas 72 h y los ids de los canales de video pasan de una corrida a la siguiente.
       - name: Recuperar archivo anterior
         uses: actions/cache/restore@v4
         with:
@@ -46,10 +46,6 @@ jobs:
           restore-keys: noticias-archivo-
 
       - name: Descargar y agrupar noticias
-        env:
-          # Opcional: con la clave, las noticias más cubiertas llevan titular y resumen neutrales hechos con Claude.
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          MAX_RESUMENES: ${{ vars.MAX_RESUMENES || '15' }}
         run: npm run actualizar
 
       - name: Guardar archivo
