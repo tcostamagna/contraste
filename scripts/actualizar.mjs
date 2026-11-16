@@ -271,7 +271,8 @@ async function main() {
   delete archivo.resumenes;
   delete archivo.hoy;
   for (const [url, a] of Object.entries(archivo.articulos)) {
-    if (horasDesde(a.fecha) > HORAS_ARCHIVO || !mediosPorId[a.medio]) delete archivo.articulos[url];
+    // En la demo las notas de ejemplo tienen fecha fija: no se descartan por antigüedad.
+    if ((!DEMO && horasDesde(a.fecha) > HORAS_ARCHIVO) || !mediosPorId[a.medio]) delete archivo.articulos[url];
     else a.lado = mediosPorId[a.medio].lado; // por si cambió la clasificación del medio
   }
 
