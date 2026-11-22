@@ -1,6 +1,6 @@
-# Contraste
+# Contraste News
 
-La misma noticia, contada por todos los medios argentinos. Contraste lee los RSS públicos de diarios de distintas líneas editoriales, agrupa las notas que hablan del mismo hecho y muestra:
+La misma noticia, contada por todos los medios argentinos. Contraste News lee los RSS públicos de diarios de distintas líneas editoriales, agrupa las notas que hablan del mismo hecho y muestra:
 
 - **Cobertura**: cuántos medios de izquierda, centro y derecha la publicaron.
 - **Quién la publicó primero** y en qué orden la levantaron los demás.
@@ -34,7 +34,9 @@ npm run actualizar
 
 ## Publicarlo solo (GitHub Actions + GitHub Pages)
 
-El workflow `.github/workflows/publicar.yml` corre cada 30 minutos en la rama `main`: descarga las noticias, las agrupa y publica `public/` en GitHub Pages.
+El workflow `.github/workflows/publicar.yml` descarga las noticias, las agrupa y publica `public/` en GitHub Pages cada 30 minutos. Como el reloj de GitHub es poco confiable (en la práctica corre cada varias horas), cada corrida programa la siguiente: espera hasta completar media hora y la lanza. El reloj queda como respaldo, por si la cadena se corta. En un repositorio público, GitHub Actions no tiene costo.
+
+El sitio muestra solo noticias que empezaron en las últimas 24 horas y no cubre deportes ni espectáculos.
 
 1. En **Settings → Pages**, elegí **Source: GitHub Actions**.
 2. En **Settings → Actions → General**, dejá habilitadas las Actions.

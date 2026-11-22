@@ -130,7 +130,12 @@ const seccion = (titulo, contenido, { enlace, sub } = {}) => `<section class="se
   ${contenido}
 </section>`;
 
-const avisoDemo = (datos) => (datos.demo ? `<div class="aviso"><b>Datos de ejemplo.</b> Estas noticias son inventadas para probar el sitio.</div>` : '');
+function avisoDemo(datos) {
+  if (datos.demo) return `<div class="aviso"><b>Datos de ejemplo.</b> Estas noticias son inventadas para probar el sitio.</div>`;
+  // Si la última actualización tiene más de 2 horas, se avisa en lugar de mostrar noticias viejas como si fueran de ahora.
+  const horas = (Date.now() - Date.parse(datos.generado)) / 3600e3;
+  return horas > 2 ? `<div class="aviso-viejo"><b>Estas noticias no se actualizan desde ${cuando(datos.generado).replace(/^H/, 'h').replace(/^A/, 'a')}.</b> Normalmente se renuevan cada 30 minutos: volvé a entrar en un rato.</div>` : '';
+}
 
 function pie(generado) {
   const el = document.getElementById('actualizado');
@@ -333,7 +338,7 @@ async function ficha() {
     raiz().innerHTML = `<div class="vacio-grande">Esta noticia ya no está en portada. <a href="./">Volver al inicio</a>.</div>`;
     return;
   }
-  document.title = `${h.titular} · Contraste`;
+  document.title = `${h.titular} · Contraste News`;
   const titularDe = h.articulos.find((a) => a.medio === h.titularDe) || h.articulos[0];
 
   const lados = LADOS.map(([l, n]) => {

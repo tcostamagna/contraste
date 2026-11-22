@@ -17,12 +17,12 @@ const MENU = [
 ];
 
 const PAGINAS = [
-  ['index.html', 'portada', 'Contraste · La misma noticia, contada por todos los medios'],
-  ['hoy.html', 'hoy', 'Ponete al día · Contraste'],
-  ['puntos-ciegos.html', 'ciegos', 'Puntos ciegos · Contraste'],
-  ['opinion.html', 'opinion', 'Opinión · Contraste'],
-  ['medios.html', 'medios', 'Medios · Contraste'],
-  ['noticia.html', 'ficha', 'Noticia · Contraste'],
+  ['index.html', 'portada', 'Contraste News · La misma noticia, contada por todos los medios'],
+  ['hoy.html', 'hoy', 'Ponete al día · Contraste News'],
+  ['puntos-ciegos.html', 'ciegos', 'Puntos ciegos · Contraste News'],
+  ['opinion.html', 'opinion', 'Opinión · Contraste News'],
+  ['medios.html', 'medios', 'Medios · Contraste News'],
+  ['noticia.html', 'ficha', 'Noticia · Contraste News'],
 ];
 
 const plantilla = (vista, titulo) => `<!doctype html>
@@ -46,9 +46,9 @@ const plantilla = (vista, titulo) => `<!doctype html>
   <a class="saltar" href="#contenido">Ir al contenido</a>
   <header class="cabecera">
     <div class="cabecera-in">
-      <a class="marca" href="./" aria-label="Contraste, inicio">
+      <a class="marca" href="./" aria-label="Contraste News, inicio">
         <span class="marca-icono" aria-hidden="true"><i></i><i></i><i></i></span>
-        <span class="marca-texto">Contraste</span>
+        <span class="marca-texto">Contraste <em>News</em></span>
       </a>
       <form class="buscador" action="./" method="get" role="search">
         <label class="sr" for="q">Buscar noticias</label>
@@ -64,7 +64,7 @@ ${MENU.map(([href, id, texto]) => `        <a href="${href}"${id === vista ? ' a
   <footer class="pie">
     <div class="pie-in">
       <div>
-        <a class="marca marca-pie" href="./"><span class="marca-icono" aria-hidden="true"><i></i><i></i><i></i></span><span class="marca-texto">Contraste</span></a>
+        <a class="marca marca-pie" href="./"><span class="marca-icono" aria-hidden="true"><i></i><i></i><i></i></span><span class="marca-texto">Contraste <em>News</em></span></a>
         <p>La misma noticia, contada por todos los medios. Agrupamos automáticamente lo que publican los diarios argentinos en sus RSS públicos y siempre enlazamos a la nota original.</p>
       </div>
       <div>

@@ -1,9 +1,13 @@
 name: Actualizar y publicar
 
-# Cada 30 minutos descarga los RSS de los medios, agrupa las noticias y publica el sitio en GitHub Pages.
+# Descarga los RSS de los medios, agrupa las noticias y publica el sitio en GitHub Pages cada 30 minutos.
+#
+# El reloj de GitHub (schedule) es poco confiable: en la práctica corre cada varias horas. Por eso cada corrida
+# programa la siguiente (job «siguiente»): espera hasta completar media hora y la lanza con workflow_dispatch.
+# El schedule queda como respaldo: si la cadena se corta, la vuelve a arrancar.
 on:
   schedule:
-    - cron: '7,37 * * * *'
+    - cron: '23 * * * *'
   workflow_dispatch:
   push:
     branches: [main]
@@ -12,18 +16,21 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: write
 
-concurrency:
-  group: noticias-ar
-  cancel-in-progress: false
+env:
+  MINUTOS_ENTRE_CORRIDAS: 30
 
 jobs:
   actualizar:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    concurrency:
+      group: noticias-ar
+      cancel-in-progress: false
     environment:
       name: github-pages
-      url: ${{ steps.publicar.outputs.page_url }}
+      url: ${{ steps.publicar.outputs.page_url || steps.reintento.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -61,5 +68,44 @@ jobs:
         with:
           path: public
 
+      # A veces GitHub falla al encontrar el paquete recién subido: se reintenta una vez.
       - id: publicar
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Esperar antes de reintentar
+        if: steps.publicar.outcome == 'failure'
+        run: sleep 30
+
+      - id: reintento
+        if: steps.publicar.outcome == 'failure'
+        uses: actions/deploy-pages@v4
+
+  siguiente:
+    # Programa la próxima actualización. Corre aunque la publicación haya fallado, para que la cadena no se corte.
+    needs: actualizar
+    if: always() && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Esperar hasta completar media hora
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          inicio=$(date -d "$(gh run view "${{ github.run_id }}" --json createdAt -q .createdAt)" +%s)
+          espera=$(( MINUTOS_ENTRE_CORRIDAS * 60 - ($(date +%s) - inicio) ))
+          if [ "$espera" -gt 0 ]; then echo "Espero ${espera} segundos"; sleep "$espera"; fi
+
+      - name: Lanzar la próxima corrida (si no hay otra más nueva)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          # Si mientras esperaba arrancó otra corrida (por el reloj de respaldo o un push), esa sigue la cadena.
+          mio=$(gh run view "${{ github.run_id }}" --json createdAt -q .createdAt)
+          nuevas=$(gh run list --workflow publicar.yml --limit 20 --json databaseId,createdAt \
+            -q "[.[] | select(.databaseId != ${{ github.run_id }} and .createdAt > \"$mio\")] | length")
+          if [ "$nuevas" -gt 0 ]; then echo "Ya hay una corrida más nueva: no lanzo otra."; exit 0; fi
+          gh workflow run publicar.yml --ref main
+          echo "Próxima corrida lanzada."

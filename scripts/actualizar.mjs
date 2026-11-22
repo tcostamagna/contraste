@@ -24,7 +24,14 @@ const DEMO = process.argv.includes('--demo');
 const ARCHIVO = path.join(RAIZ, 'datos', DEMO ? 'archivo-demo.json' : 'archivo.json');
 const SALIDA = path.join(RAIZ, 'public', 'datos');
 const HORAS_ARCHIVO = 72; // cuánto se guarda cada nota
-const HORAS_PORTADA = 48; // qué notas entran a la portada
+const HORAS_AGRUPAR = 36; // qué notas se usan para armar las noticias (para seguir una noticia que empezó ayer)
+const HORAS_PORTADA = 24; // una noticia entra al sitio solo si empezó en las últimas 24 horas, como un diario
+const HORAS_SUELTAS = 12; // notas de un solo medio: las de las últimas 12 horas
+// El sitio no cubre deportes ni espectáculos: se descartan por sección del diario y por tema.
+const TEMAS_EXCLUIDOS = new Set(['deportes', 'espectaculos']);
+const SECCION_EXCLUIDA = /\/(deportes?|futbol|f%C3%BAtbol|tenis|automovilismo|rugby|basquet|polideportivo|olimpicos|espectaculos|show|teleshow|famosos|farandula|gente|celebrities|entretenimiento|cine|musica|series|tv|television)(\/|-)/i;
+const CATEGORIA_EXCLUIDA = /deporte|f[uú]tbol|espect[aá]culo|show|famosos|far[aá]ndula|entretenimiento|televisi[oó]n|celebridades/i;
+const esExcluida = (n) => SECCION_EXCLUIDA.test(n.url || '') || (n.categorias || []).some((c) => CATEGORIA_EXCLUIDA.test(c));
 const LADOS = ['izquierda', 'centro', 'derecha'];
 const PALABRAS_POR_MINUTO = 200;
 
@@ -195,7 +202,7 @@ async function videosDeMedios(archivo, mediosPorId, historias) {
     const m = mediosPorId[c.medio];
     try {
       const id = archivo.canales[c.handle] || (archivo.canales[c.handle] = await idDeCanal(c.handle));
-      const videos = (await descargarVideos(id)).filter((v) => v.fecha && horasDesde(v.fecha) <= HORAS_PORTADA);
+      const videos = (await descargarVideos(id)).filter((v) => v.fecha && horasDesde(v.fecha) <= HORAS_AGRUPAR);
       todos.push(...videos.map((v) => ({ ...v, medio: m.id, nombre: m.nombre, lado: m.lado })));
       estado.push({ medio: m.id, handle: c.handle, ok: true, videos: videos.length });
     } catch (e) {
@@ -271,6 +278,7 @@ async function main() {
     const alternativa = usados.find((u) => !m.feeds.includes(u));
     log(`${notas.length ? '✓' : '✗'} ${m.nombre.padEnd(20)} ${String(notas.length).padStart(3)} notas${m.opinion ? ` (${opinion} de opinión${errorOpinion ? `, error: ${errorOpinion}` : ''})` : ''}${alternativa ? `  (alternativa: ${alternativa})` : ''}${errores.length ? '  ' + errores.join(' | ') : ''}`);
     for (const n of notas) {
+      if (esExcluida(n)) continue;
       const url = limpiarUrl(n.url);
       const previa = archivo.articulos[url];
       if (!previa) nuevas++;
@@ -297,18 +305,26 @@ async function main() {
 
   // 3. Agrupar las noticias (las columnas de opinión van aparte)
   const todas = Object.values(archivo.articulos);
-  const recientes = todas.filter((a) => !a.opinion && (DEMO || horasDesde(a.fecha) <= HORAS_PORTADA));
+  const recientes = todas.filter((a) => !a.opinion && !esExcluida(a) && (DEMO || horasDesde(a.fecha) <= HORAS_AGRUPAR));
   const grupos = agrupar(recientes);
   log(`\n${recientes.length} notas recientes (${nuevas} nuevas) → ${grupos.length} grupos, ${grupos.filter((g) => new Set(g.articulos.map((a) => a.medio)).size >= 2).length} con 2 medios o más`);
 
   // 4. Historias para el sitio
-  const historias = grupos.map((g) => armarHistoria(g, mediosPorId));
-  const conVarios = historias.filter((h) => h.medios >= 2).sort((a, b) => b.puntaje - a.puntaje).slice(0, 200);
-  const sueltas = historias.filter((h) => h.medios < 2).sort((a, b) => Date.parse(b.fecha) - Date.parse(a.fecha)).slice(0, 80);
+  const historias = grupos
+    .map((g) => armarHistoria(g, mediosPorId))
+    .filter((h) => !TEMAS_EXCLUIDOS.has(h.tema));
+  const conVarios = historias
+    .filter((h) => h.medios >= 2 && (DEMO || horasDesde(h.fecha) <= HORAS_PORTADA))
+    .sort((a, b) => b.puntaje - a.puntaje)
+    .slice(0, 200);
+  const sueltas = historias
+    .filter((h) => h.medios < 2 && (DEMO || horasDesde(h.fecha) <= HORAS_SUELTAS))
+    .sort((a, b) => Date.parse(b.fecha) - Date.parse(a.fecha))
+    .slice(0, 80);
 
   // 5. Opinión: columnas y editoriales, asignadas a la noticia de la que hablan
   const columnas = todas
-    .filter((a) => a.opinion)
+    .filter((a) => a.opinion && !esExcluida(a) && (DEMO || horasDesde(a.fecha) <= 48))
     .sort((a, b) => Date.parse(b.fecha) - Date.parse(a.fecha))
     .slice(0, 150)
     .map((a) => ({ medio: a.medio, nombre: mediosPorId[a.medio].nombre, lado: a.lado, titulo: a.titulo, descripcion: a.descripcion, autor: a.autor || '', url: a.url, fecha: a.fecha }));
@@ -327,7 +343,7 @@ async function main() {
   await mkdir(path.dirname(ARCHIVO), { recursive: true });
   const generado = new Date(ahora).toISOString();
   const catalogo = medios.map((m) => ({ id: m.id, nombre: m.nombre, lado: m.lado, ok: estado[m.id].ok }));
-  await writeFile(path.join(SALIDA, 'historias.json'), JSON.stringify({ generado, demo: DEMO, temas: TEMAS.map(({ id, nombre }) => ({ id, nombre })), medios: catalogo, historias: conVarios, sueltas }));
+  await writeFile(path.join(SALIDA, 'historias.json'), JSON.stringify({ generado, demo: DEMO, temas: TEMAS.filter((t) => !TEMAS_EXCLUIDOS.has(t.id)).map(({ id, nombre }) => ({ id, nombre })), medios: catalogo, historias: conVarios, sueltas }));
   await writeFile(path.join(SALIDA, 'hoy.json'), JSON.stringify({ generado, demo: DEMO, ...hoy }));
   await writeFile(path.join(SALIDA, 'opinion.json'), JSON.stringify({ generado, demo: DEMO, columnas }));
   await writeFile(path.join(SALIDA, 'medios.json'), JSON.stringify({
