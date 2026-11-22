@@ -370,23 +370,55 @@ async function ficha() {
   const siguiente = datos.historias[indice + 1] || (indice !== 0 ? datos.historias[0] : null);
   const orden = unaPorMedio(h.articulos);
 
+  const lado = (l) => NOMBRE_LADO[l].toLowerCase();
+  const enlaceNota = (n) => `<a class="nota-fuente" href="${esc(n.url)}" target="_blank" rel="noopener"><span class="punto ${n.lado}"></span><b>${esc(n.nombre)}</b>${n.detalle ? ` · «${esc(n.detalle)}»` : ''}</a>`;
+  const botones = (...preguntas) => `<div class="botones-preguntas">${preguntas.filter(Boolean).map((p) => `<button type="button" data-preguntar="${esc(p)}">${esc(p)}</button>`).join('')}</div>`;
+  const sinCuenta = (datos.medios || []).filter((m) => m.ok && !h.articulos.some((a) => a.medio === m.id));
+
+  // 1. Qué pasó: resumen corto con su fuente y los datos básicos.
+  const quePaso = `<div class="que-paso">
+      ${h.resumen ? `<p class="resumen-corto">${esc(oracionesCortas(h.resumen))}</p>
+        <p class="fuente">Resumen tomado de la bajada de <a href="${esc(titularDe.url)}" target="_blank" rel="noopener">${esc(titularDe.nombre)}</a>.</p>` : ''}
+      <ul class="datos-rapidos">
+        <li><b>Cuándo:</b> la publicó primero ${esc(orden[0].nombre)} (${lado(orden[0].lado)}), ${cuando(orden[0].fecha).replace(/^H/, 'h').replace(/^A/, 'a')}.</li>
+        <li><b>Quién la cuenta:</b> ${plural(h.medios, 'medio', 'medios')}: ${h.cobertura.izquierda} de izquierda, ${h.cobertura.centro} de centro y ${h.cobertura.derecha} de derecha.</li>
+        ${sinCuenta.length ? `<li><b>Quién no:</b> ${sinCuenta.slice(0, 6).map((m) => esc(m.nombre)).join(', ')}${sinCuenta.length > 6 ? ` y ${sinCuenta.length - 6} más` : ''}.</li>` : ''}
+      </ul>
+    </div>
+    ${botones('¿Quién la publicó primero?', '¿Quién no la cuenta?')}`;
+
+  // 3. Corroboración y fuentes: el índice, cada señal con las notas que la respaldan y las cifras.
+  const s = h.solidez;
+  const corroboracion = s ? `<div class="corroboracion s-${s.nivel}">
+      <div class="corr-cab">
+        <div class="solidez-cifra"><b>${s.puntaje}</b><span>de 100</span></div>
+        <div class="corr-nivel"><em>${esc(s.etiqueta)}</em><div class="solidez-barra"><i style="width:${s.puntaje}%"></i></div></div>
+      </div>
+      <ul class="senales grandes">${s.senales.map((x) => `<li class="${x.estado}"><span aria-hidden="true">${x.estado === 'ok' ? '✓' : x.estado === 'medio' ? '~' : '✗'}</span><div>${esc(x.texto)}${x.notas?.length ? `<div class="notas-fuente">${x.notas.slice(0, 6).map(enlaceNota).join('')}</div>` : ''}</div></li>`).join('')}</ul>
+      ${cifras.length ? `<h3 class="corr-sub">Cifras y quién las da</h3>
+        <div class="cifras">${cifras.map((c) => `<div class="cifra-fila"><div class="cifra-valor">${esc(c.cifra)}${c.veredicto ? `<span class="veredicto v-${c.veredicto.id}">${esc(c.veredicto.texto)}</span>` : ''}</div><div class="cifra-medios">${c.medios.map((m) => m.url ? `<a href="${esc(m.url)}" target="_blank" rel="noopener"><span class="punto ${m.lado}"></span>${esc(m.nombre)}</a>` : `<span><span class="punto ${m.lado}"></span>${esc(m.nombre)}</span>`).join('')}</div></div>`).join('')}</div>` : ''}
+      <p class="nota-pie">No decimos si algo es verdad o mentira: medimos cuánto respaldo tiene entre los medios y en qué se apoya. <a href="metodo.html#solidez">Cómo se calcula</a>.</p>
+    </div>
+    ${botones('¿Está corroborada?', cifras.length ? '¿Qué cifras dan?' : '')}` : '';
+
   raiz().innerHTML = `${avisoDemo(datos)}
   <div class="ficha">
     <article>
       <header class="ficha-cab">
-        <div class="meta"><a href="./?tema=${esc(h.tema)}" class="kicker">${esc(h.temaNombre)}</a><span>·</span><span>Empezó ${cuando(h.fecha).replace(/^H/, 'h').replace(/^A/, 'a')}</span>${h.actualizado !== h.fecha ? `<span>·</span><span>última nota ${cuando(h.actualizado).replace(/^H/, 'h').replace(/^A/, 'a')}</span>` : ''}<span>·</span><span>${plural(h.medios, 'medio', 'medios')}</span></div>
+        <div class="meta"><a href="./?tema=${esc(h.tema)}" class="kicker">${esc(h.temaNombre)}</a><span>·</span><span>Empezó ${cuando(h.fecha).replace(/^H/, 'h').replace(/^A/, 'a')}</span>${h.actualizado !== h.fecha ? `<span>·</span><span>última nota ${cuando(h.actualizado).replace(/^H/, 'h').replace(/^A/, 'a')}</span>` : ''}</div>
         <h1>${esc(h.titular)}</h1>
         <div class="meta">${sello(h)}${etiquetaCiego(h)}</div>
         ${barra(h.cobertura, true)}
         ${leyenda(h.cobertura)}
         ${h.imagen ? `<img class="ficha-img" src="${esc(h.imagen)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
-        ${h.resumen ? `<p class="bajada">${esc(h.resumen)}</p><p class="fuente">Titular y bajada de ${esc(titularDe.nombre)}.</p>` : ''}
+        <nav class="indice-ficha" aria-label="En esta noticia"><a href="#que-paso">Qué pasó</a><a href="#cada-lado">Cada lado</a>${s ? '<a href="#corroboracion">Corroboración</a>' : ''}${h.opiniones?.length ? '<a href="#opinan">Qué opinan</a>' : ''}${h.videos?.length ? '<a href="#videos">Videos</a>' : ''}<a href="#fuentes">Todas las fuentes</a></nav>
       </header>
-      ${seccion('Cómo la cuenta cada lado', `<div class="lados">${lados}</div>`, { sub: 'Qué titula cada medio y qué palabras elige cada lado.' })}
-      ${cifras.length ? seccion('Cifras en juego', `<div class="cifras">${cifras.map((c) => `<div class="cifra-fila"><div class="cifra-valor">${esc(c.cifra)}${c.veredicto ? `<span class="veredicto v-${c.veredicto.id}">${esc(c.veredicto.texto)}</span>` : ''}</div><div class="cifra-medios">${c.medios.map((m) => `<span><span class="punto ${m.lado}"></span>${esc(m.nombre)}</span>`).join('')}</div></div>`).join('')}</div>`, { sub: 'Los números que aparecen en los titulares y bajadas, y qué medio da cada uno.' }) : ''}
-      ${h.opiniones?.length ? seccion('Qué opinan los columnistas', `<div class="columnas-op">${h.opiniones.map((c) => columnaOpinion(c)).join('')}</div>`, { sub: 'Columnas y editoriales sobre esta noticia.' }) : ''}
-      ${h.videos?.length ? seccion('En video', `<div class="videos">${h.videos.map((v) => tarjetaVideo(v)).join('')}</div>`, { sub: 'Lo que publicaron los canales de los medios.' }) : ''}
-      ${seccion('Qué publicó cada medio', `<div class="columnas">${columnas}</div>`)}
+      <div id="que-paso">${seccion('<span class="paso">1</span>Qué pasó', quePaso)}</div>
+      <div id="cada-lado">${seccion('<span class="paso">2</span>Cómo lo cuenta cada lado', `<div class="lados">${lados}</div>${botones('¿Qué cuenta cada lado?')}`, { sub: 'Qué titula cada medio y qué palabras elige cada lado.' })}</div>
+      ${s ? `<div id="corroboracion">${seccion('<span class="paso">3</span>Corroboración y fuentes', corroboracion, { sub: 'Cuánto respaldo tiene la noticia y qué notas lo dan.' })}</div>` : ''}
+      ${h.opiniones?.length ? `<div id="opinan">${seccion('¿Qué opinan?', `<div class="columnas-op">${h.opiniones.map((c) => columnaOpinion(c)).join('')}</div>${botones('¿Qué opinan los columnistas?')}`, { sub: 'Columnas y editoriales sobre esta noticia. La opinión no cuenta para la cobertura ni para la solidez.' })}</div>` : ''}
+      ${h.videos?.length ? `<div id="videos">${seccion('En video', `<div class="videos">${h.videos.map((v) => tarjetaVideo(v)).join('')}</div>`, { sub: 'Lo que publicaron los canales de YouTube de los medios. No verificamos lo que muestran.' })}</div>` : ''}
+      <div id="fuentes">${seccion('Todas las fuentes', `<div class="columnas">${columnas}</div>`, { sub: 'Cada nota que agrupamos en esta noticia, con enlace al original.' })}</div>
       ${relacionadas.length ? seccion('Seguí leyendo', `<div class="grilla">${relacionadas.map(tarjeta).join('')}</div>`) : ''}
       ${siguiente ? `<a class="boton-siguiente" href="${enlaceFicha(siguiente)}"><span>Siguiente noticia</span><b>${esc(siguiente.titular)}</b><i aria-hidden="true">→</i></a>` : ''}
     </article>
@@ -397,14 +429,8 @@ async function ficha() {
         <p class="nota-pie">${h.medios === 1 ? 'medio la publicó' : 'medios la publicaron'}</p>
         ${barra(h.cobertura, true)}
         ${leyenda(h.cobertura)}
+        ${s ? `<a class="mini-solidez s-${s.nivel}" href="#corroboracion"><b>${s.puntaje}</b><span>Solidez · ${esc(s.etiqueta)}</span><i aria-hidden="true">→</i></a>` : ''}
       </section>
-      ${h.solidez ? `<section class="caja solidez s-${h.solidez.nivel}">
-        <h2>¿Qué tan corroborada está?</h2>
-        <div class="solidez-cifra"><b>${h.solidez.puntaje}</b><span>de 100</span><em>${esc(h.solidez.etiqueta)}</em></div>
-        <div class="solidez-barra"><i style="width:${h.solidez.puntaje}%"></i></div>
-        <ul class="senales">${h.solidez.senales.map((x) => `<li class="${x.estado}"><span aria-hidden="true">${x.estado === 'ok' ? '✓' : x.estado === 'medio' ? '~' : '✗'}</span>${esc(x.texto)}</li>`).join('')}</ul>
-        <p class="nota-pie">No verificamos los hechos: medimos cuántos medios y de qué lados la cuentan, si las cifras coinciden, si citan fuentes identificables y si hablan de trascendidos.</p>
-      </section>` : ''}
       <section class="caja preguntas" id="preguntas" aria-label="Preguntas rápidas sobre esta noticia"></section>
       <section class="caja">
         <h2>Quién la publicó primero</h2>
@@ -414,7 +440,26 @@ async function ficha() {
   </div>`;
   activarVideos(raiz());
   montarPreguntas(document.getElementById('preguntas'), h, datos.medios || []);
+  // Botones al final de cada sección: abren la respuesta en «Preguntas rápidas».
+  raiz().querySelectorAll('[data-preguntar]').forEach((b) => b.addEventListener('click', () => {
+    const panel = document.getElementById('preguntas');
+    const boton = [...panel.querySelectorAll('.sugeridas button')].find((x) => x.textContent.replace('→', '').trim() === b.dataset.preguntar);
+    if (boton) boton.click();
+    panel.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    b.classList.add('hecho');
+  }));
   pie(datos.generado);
+}
+
+/** Las dos primeras oraciones de un texto, para el «Qué pasó». */
+function oracionesCortas(texto, max = 280) {
+  const partes = String(texto).match(/[^.!?]+[.!?]+(\s|$)/g) || [texto];
+  let salida = '';
+  for (const p of partes) {
+    if (salida && (salida + p).length > max) break;
+    salida += p;
+  }
+  return salida.trim();
 }
 
 // Preguntas rápidas: respuestas armadas con los datos de la noticia (sin IA).
@@ -532,6 +577,102 @@ async function hoy() {
   pie(datos.generado);
 }
 
+// ---------- Cómo funciona ----------
+async function metodo() {
+  const datos = await cargar('historias').catch(() => null);
+  const ej = datos?.historias?.find((h) => h.medios >= 4) || datos?.historias?.[0];
+  const n = datos?.medios?.length || 14;
+  const ejemploCobertura = ej ? `${barra(ej.cobertura, true)}${leyenda(ej.cobertura)}<p class="nota-pie">Ejemplo real: «${esc(ej.titular)}».</p>` : '';
+  const ejemploSello = ej?.solidez ? `<div class="meta">${sello(ej)}</div>` : '';
+  const definicion = (id, termino, texto) => `<div id="${id}"><dt>${termino}</dt><dd>${texto}</dd></div>`;
+
+  raiz().innerHTML = `<article class="metodo">
+    <span class="kicker">Cómo funciona</span>
+    <h1 class="titulo-pagina">No es verdad o mentira: es respaldo</h1>
+    <p class="lead">Contraste News no dice qué medio tiene razón. Muestra quién cuenta cada noticia, cómo la cuenta cada lado, en qué se apoya y qué faltaría para estar seguros.</p>
+    <p class="recuadro">Medimos noticias, no intenciones. Nunca decimos que un medio miente: decimos cuántos medios la cuentan, de qué lados, si citan una fuente identificable y si los números coinciden entre ellos.</p>
+
+    ${seccion('El método en 5 pasos', `<ol class="pasos">
+      <li><b>Leemos</b>Cada 30 minutos, los titulares y bajadas que publican ${n} medios argentinos en sus RSS, las columnas de opinión de 10 de ellos y los videos de 8 canales de YouTube.</li>
+      <li><b>Agrupamos</b>Un programa compara las palabras de cada titular y junta las notas que cuentan el mismo hecho. Después cuenta cuántos medios de cada lado la publicaron.</li>
+      <li><b>Armamos la ficha</b>Qué pasó, cómo lo cuenta cada lado, las cifras que da cada medio y todas las notas enlazadas.</li>
+      <li><b>Medimos la solidez</b>Con reglas fijas, iguales para todos los lados, calculamos un índice de 0 a 100 y mostramos de dónde sale cada punto.</li>
+      <li><b>Publicamos</b>Cada noticia dice cuándo empezó, cuál fue la última nota y enlaza cada fuente. Todo es automático: no hay IA ni revisión humana.</li>
+    </ol>`)}
+
+    ${seccion('Cómo leer Contraste News en 1 minuto', `<div class="leer-1min">
+      <div><h3>Cobertura</h3>${ejemploCobertura}<p>Cuántos medios de cada lado publicaron la noticia. Rojo es izquierda, gris centro y azul derecha.</p></div>
+      <div><h3>Punto ciego</h3><div class="meta"><span class="etiqueta derecha">Solo la cuenta la derecha</span></div><p>Una noticia que publican al menos dos medios de un lado y ninguno del otro. Si solo leés al otro lado, probablemente no te enteraste.</p></div>
+      <div><h3>Solidez</h3>${ejemploSello}<p>De 0 a 100, cuánto respaldo tiene la noticia entre los medios. No dice si es verdad: dice qué tan bien apoyada está. <a href="#solidez">Cómo se calcula</a>.</p></div>
+      <div><h3>Preguntas rápidas</h3><div class="botones-preguntas"><button type="button" tabindex="-1">¿Quién no la cuenta?</button></div><p>En cada noticia, botones con preguntas listas para tocar. Las respuestas salen de los datos de esa noticia, sin opinar.</p></div>
+    </div>`)}
+
+    ${seccion('Qué tiene cada noticia', `<ol>
+      <li><b>Qué pasó:</b> un resumen corto, tomado de la bajada del medio más representativo (preferimos uno de centro), con el enlace a esa nota. Abajo, cuándo empezó, quién la cuenta y quién no.</li>
+      <li><b>Cómo lo cuenta cada lado:</b> los titulares de cada lado, una bajada y las palabras que usa solo ese lado (por ejemplo, la izquierda dice «jubilados» y la derecha «celebra»).</li>
+      <li><b>Corroboración y fuentes:</b> el índice de solidez, cada señal con las notas que la respaldan y las cifras con el medio que da cada una.</li>
+      <li>Además: qué opinan los columnistas, los videos de los medios, todas las fuentes y noticias relacionadas.</li>
+    </ol>`)}
+
+    <div id="solidez">${seccion('El índice de solidez', `<p>Sumamos y restamos puntos con reglas fijas. Son las mismas para cualquier noticia, la cuente el lado que la cuente.</p>
+      <table class="escala"><thead><tr><th>Señal</th><th>Qué mide</th><th>Puntos</th></tr></thead><tbody>
+        <tr><td>Medios</td><td>Cuántos medios distintos la publicaron.</td><td>+10 por medio, hasta 40</td></tr>
+        <tr><td>Lados</td><td>Si la cuentan los tres lados, o dos.</td><td>+20 o +10</td></tr>
+        <tr><td>Fuente identificable</td><td>Si alguna nota nombra un organismo, un documento o un vocero: INDEC, Banco Central, un fallo, un comunicado, «confirmó».</td><td>+15</td></tr>
+        <tr><td>Cifras que coinciden</td><td>Qué parte de los números de la noticia los dan al menos dos medios.</td><td>hasta +15</td></tr>
+        <tr><td>Condicional o trascendidos</td><td>Notas que dicen «habría», «podría», «trascendió», «según fuentes».</td><td>hasta −25</td></tr>
+        <tr><td>Relleno</td><td>Titulares del tipo «mirá el video» o «lo que tenés que saber».</td><td>−15</td></tr>
+      </tbody></table>
+      <p><b>75 a 100:</b> muy corroborada · <b>55 a 74:</b> corroborada · <b>35 a 54:</b> poco corroborada · <b>menos de 35:</b> sin corroborar.</p>
+      <p>Cada cifra lleva su propio veredicto: <span class="veredicto v-corroborado" style="display:inline-block">Corroborado</span> si la dan 3 o más medios de al menos 2 lados, <span class="veredicto v-coinciden" style="display:inline-block">Coinciden</span> si la dan 2 o más medios y <span class="veredicto v-un-medio" style="display:inline-block">Lo da un solo medio</span> si no la repite nadie.</p>`)}</div>
+
+    ${seccion('Izquierda y derecha', `<p><b>Posición de cada medio.</b> Cada medio está ubicado en izquierda, centro o derecha. Es una clasificación aproximada y discutible, pensada para comparar coberturas, no para calificar a nadie. Está en <a href="medios.html">Medios</a>.</p>
+      <p><b>Cobertura.</b> Cuántos medios de cada lado publicaron la noticia. Contamos medios, no notas: si un diario publica tres notas, cuenta una vez.</p>
+      <p><b>Punto ciego.</b> Al menos dos medios de un lado la publicaron y ninguno del otro.</p>
+      <p><b>La opinión va aparte.</b> Las columnas y editoriales entran por las secciones de opinión de los medios, se muestran en «¿Qué opinan?» y en <a href="opinion.html">Opinión</a>, y no cuentan para la cobertura, los puntos ciegos ni la solidez.</p>
+      <p><b>Regla de simetría.</b> Las reglas no saben de qué lado es cada medio: un trascendido resta lo mismo en Página/12 que en La Nación. El código es público en <a href="https://github.com/tcostamagna/contraste" target="_blank" rel="noopener">GitHub</a>.</p>`)}
+
+    ${seccion('Videos', `<p>Leemos los canales oficiales de YouTube de 8 de los medios y mostramos un video junto a una noticia cuando su título se parece a los titulares de esa noticia (como mucho, uno por medio). Usamos el reproductor de YouTube sin cookies, y no se carga hasta que tocás. Que un video esté acá no quiere decir que hayamos comprobado lo que muestra.</p>`)}
+
+    ${seccion('Qué no hacemos (todavía)', `<ul>
+      <li>No verificamos las afirmaciones contra fuentes primarias (Boletín Oficial, INDEC, fallos): medimos cuánto respaldo tienen entre los medios.</li>
+      <li>No usamos inteligencia artificial ni hay una persona que revise cada noticia antes de publicarla.</li>
+      <li>No medimos qué opina la gente en redes.</li>
+      <li>No cubrimos deportes ni espectáculos.</li>
+    </ul>`)}
+
+    ${seccion('Límites que conviene conocer', `<p>El agrupamiento es estadístico: a veces junta dos noticias parecidas o deja separadas notas del mismo hecho contadas con palabras muy distintas. Solo leemos titulares y bajadas, no las notas completas, así que una fuente citada en el cuerpo de la nota no suma. En las primeras horas de una noticia hay pocos medios y pocas fuentes: es normal que aparezca como «poco corroborada» y suba con el correr del día.</p>`)}
+
+    ${seccion('Preguntas frecuentes', `<div class="faq">
+      <details><summary>¿Qué mide el índice de solidez?</summary><p>Cuánto respaldo tiene una noticia entre los medios: cuántos la cuentan, de qué lados, si citan fuentes identificables, si las cifras coinciden y si hablan en condicional. No mide si es verdad.</p></details>
+      <details><summary>¿Contraste News dice si una noticia es falsa?</summary><p>No. Una noticia «sin corroborar» puede ser cierta: puede ser de último momento o una primicia de un solo medio. Lo que decimos es que, por ahora, tiene poco respaldo.</p></details>
+      <details><summary>¿Dónde está la opinión?</summary><p>En la página <a href="opinion.html">Opinión</a> y en el bloque «¿Qué opinan?» de cada noticia. No cuenta para la cobertura ni para la solidez.</p></details>
+      <details><summary>¿Cada cuánto se actualiza?</summary><p>Cada 30 minutos. Solo mostramos noticias que empezaron en las últimas 24 horas. Si alguna vez se traba, el sitio te avisa desde cuándo no se actualiza.</p></details>
+      <details><summary>¿Puede equivocarse?</summary><p>Sí: al agrupar notas, al detectar una fuente o una cifra. Por eso cada señal enlaza las notas en las que se apoya, para que puedas comprobarlo vos.</p></details>
+      <details><summary>¿Por qué no hay deportes ni espectáculos?</summary><p>Porque el sitio está pensado para comparar cómo se cuenta la actualidad política, económica y social, donde la línea editorial de cada medio pesa más.</p></details>
+    </div>`)}
+
+    <div id="glosario">${seccion('Glosario', `<dl class="glosario">
+      ${definicion('cobertura', 'Cobertura', 'Cuántos medios de cada lado publicaron una noticia.')}
+      ${definicion('punto-ciego', 'Punto ciego', 'Una noticia que publica un lado y el otro no.')}
+      ${definicion('indice-de-solidez', 'Índice de solidez', 'De 0 a 100, cuánto respaldo tiene una noticia entre los medios. No es «verdad o mentira».')}
+      ${definicion('corroborado', 'Corroborado', 'Un dato que dan varios medios de distintos lados.')}
+      ${definicion('fuente-identificable', 'Fuente identificable', 'Un organismo, documento o vocero con nombre: INDEC, un fallo, un comunicado oficial.')}
+      ${definicion('trascendido', 'Trascendido', 'Información que se atribuye a fuentes sin nombre («trascendió», «según fuentes»). Puede ser cierta, pero no se puede comprobar.')}
+      ${definicion('relleno', 'Relleno', 'Nota hecha para sumar clics más que para informar: «mirá el video», «lo que tenés que saber».')}
+      ${definicion('noticia-y-opinion', 'Noticia y opinión', 'La noticia cuenta hechos comprobables; la columna y el editorial los valoran.')}
+      ${definicion('contraste-de-fuentes', 'Contraste de fuentes', 'Comprobar una noticia con otros medios independientes y, si se puede, con la fuente original.')}
+      ${definicion('sesgo-de-confirmacion', 'Sesgo de confirmación', 'La tendencia a creer y recordar lo que confirma lo que ya pensamos.')}
+      ${definicion('bulo', 'Bulo', 'Noticia falsa que se difunde a propósito.')}
+      ${definicion('ultimo-momento', 'Último momento', 'Al principio hay pocas fuentes: la información se corrige y se completa con las horas.')}
+    </dl>`)}</div>
+
+    <p class="nota-pie">Última actualización del método: ${new Date('2026-11-22T12:00:00-03:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' })}.</p>
+  </article>`;
+  if (location.hash) document.getElementById(location.hash.slice(1))?.scrollIntoView();
+  if (datos) pie(datos.generado);
+}
+
 // ---------- Medios ----------
 async function medios() {
   const datos = await cargar('medios');
@@ -554,7 +695,7 @@ async function medios() {
   pie(datos.generado);
 }
 
-const paginas = { portada, ciegos, ficha, medios, hoy, opinion: opinionPagina };
+const paginas = { portada, ciegos, ficha, medios, hoy, opinion: opinionPagina, metodo };
 ticker();
 (paginas[document.body.dataset.vista] || portada)().catch((e) => {
   raiz().innerHTML = `<div class="vacio-grande">No se pudieron cargar las noticias. ${esc(e.message)}</div>`;

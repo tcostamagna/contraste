@@ -14,6 +14,7 @@ const MENU = [
   ['puntos-ciegos.html', 'ciegos', 'Puntos ciegos'],
   ['opinion.html', 'opinion', 'Opinión'],
   ['medios.html', 'medios', 'Medios'],
+  ['metodo.html', 'metodo', 'Cómo funciona'],
 ];
 
 const PAGINAS = [
@@ -23,6 +24,7 @@ const PAGINAS = [
   ['opinion.html', 'opinion', 'Opinión · Contraste News'],
   ['medios.html', 'medios', 'Medios · Contraste News'],
   ['noticia.html', 'ficha', 'Noticia · Contraste News'],
+  ['metodo.html', 'metodo', 'Cómo funciona · Contraste News'],
 ];
 
 const plantilla = (vista, titulo) => `<!doctype html>
@@ -69,7 +71,7 @@ ${MENU.map(([href, id, texto]) => `        <a href="${href}"${id === vista ? ' a
       </div>
       <div>
         <p id="actualizado"></p>
-        <p>La ubicación de cada medio en izquierda, centro o derecha es aproximada y discutible: mirala en <a href="medios.html">Medios</a>.</p>
+        <p>La ubicación de cada medio en izquierda, centro o derecha es aproximada y discutible: mirala en <a href="medios.html">Medios</a>. <a href="metodo.html">Cómo funciona</a> · <a href="metodo.html#glosario">Glosario</a>.</p>
       </div>
     </div>
   </footer>

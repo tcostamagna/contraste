@@ -17,7 +17,7 @@ test('palabras que usa solo cada lado', () => {
 
 test('cifras con los medios que las dan', () => {
   const c = cifrasPorMedio(notas, { p: 'Página/12', c: 'Clarín' });
-  assert.deepEqual(c[0], { cifra: '2,1%', medios: [{ medio: 'p', nombre: 'Página/12', lado: 'izquierda' }, { medio: 'c', nombre: 'Clarín', lado: 'derecha' }] });
+  assert.deepEqual(c[0], { cifra: '2,1%', medios: [{ medio: 'p', nombre: 'Página/12', lado: 'izquierda', url: '1' }, { medio: 'c', nombre: 'Clarín', lado: 'derecha', url: '2' }] });
   assert.ok(c.some((x) => x.cifra === 'US$ 12 millones'));
 });
 

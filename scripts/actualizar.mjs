@@ -158,7 +158,7 @@ function armarHistoria(grupo, mediosPorId) {
   const ultima = arts[arts.length - 1];
   const nombres = Object.fromEntries(Object.values(mediosPorId).map((m) => [m.id, m.nombre]));
   const cifras = cifrasPorMedio(arts, nombres);
-  const sol = solidez(arts, cobertura, cifras);
+  const sol = solidez(arts, cobertura, cifras, nombres);
 
   return {
     id: grupo.id,
