@@ -26,3 +26,19 @@ test('detecta columnas de opinión por sección o categoría', () => {
   assert.equal(esOpinion({ url: 'https://x.com/politica/nota', categorias: ['Opinión'] }), true);
   assert.equal(esOpinion({ url: 'https://x.com/politica/nota', categorias: ['Política'] }), false);
 });
+
+import { contrastePorLados } from '../lib/lados.mjs';
+
+test('contraste: alto si los lados titulan distinto, bajo si titulan igual, nulo si falta un lado', () => {
+  const distinto = contrastePorLados([
+    { medio: 'p', lado: 'izquierda', titulo: 'Los jubilados pierden contra la inflación y los salarios no alcanzan' },
+    { medio: 'c', lado: 'derecha', titulo: 'El Gobierno celebra la baja de la inflación en octubre' },
+  ], { izquierda: 1, centro: 0, derecha: 1 });
+  const igual = contrastePorLados([
+    { medio: 'p', lado: 'izquierda', titulo: 'Alerta amarilla por tormentas en el AMBA' },
+    { medio: 'c', lado: 'derecha', titulo: 'Alerta amarilla por tormentas fuertes en el AMBA' },
+  ], { izquierda: 1, centro: 0, derecha: 1 });
+  assert.ok(distinto.puntaje > igual.puntaje + 30, `${distinto.puntaje} vs ${igual.puntaje}`);
+  assert.equal(distinto.izquierda.medio, 'p');
+  assert.equal(contrastePorLados([{ medio: 'p', lado: 'izquierda', titulo: 'x' }], { izquierda: 1, centro: 0, derecha: 0 }), null);
+});

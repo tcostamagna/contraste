@@ -82,7 +82,7 @@ function tarjeta(h) {
       <div class="meta">${marcaNueva(h)}<span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span></div>
       <h3>${esc(h.titular)}</h3>
       <div class="tarjeta-pie">
-        <div class="meta">${sello(h)}${etiquetaCiego(h)}</div>
+        <div class="meta">${sello(h)}${etiquetaTendencia(h)}${etiquetaChoque(h)}${etiquetaCiego(h)}</div>
         ${cobertura(h.cobertura)}
       </div>
     </div>
@@ -102,6 +102,45 @@ function comoLeer() {
     </ol>
     <p class="nota-pie" style="margin:12px 0 0"><a href="metodo.html">Cómo funciona, en detalle →</a></p>
   </section>`;
+}
+
+/** Titulares enfrentados: cómo titula la izquierda y cómo la derecha la misma noticia. */
+function duelo(h, { compacto = false } = {}) {
+  const c = h.contraste;
+  if (!c) return '';
+  const lado = (l, n) => `<div class="duelo-lado ${l}"><span class="duelo-quien"><span class="punto ${l}"></span>${n} · ${esc(c[l].nombre || '')}</span><p>«${esc(c[l].titulo)}»</p></div>`;
+  return `<a class="duelo${compacto ? ' compacto' : ''}" href="${enlaceFicha(h)}">
+    <div class="meta">${marcaNueva(h)}<span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span>${etiquetaTendencia(h)}</div>
+    <h3>${esc(h.titular)}</h3>
+    <div class="duelo-lados">${lado('izquierda', 'Izquierda')}<div class="duelo-vs" aria-hidden="true">vs</div>${lado('derecha', 'Derecha')}</div>
+    <div class="duelo-pie">${cobertura(h.cobertura)}<span class="duelo-ir">Ver cómo la cuenta cada medio →</span></div>
+  </a>`;
+}
+const etiquetaTendencia = (h) => (h.enTendencia ? '<span class="etiqueta tendencia" title="Aparece entre las noticias destacadas de Google Noticias Argentina">▲ En tendencia</span>' : '');
+const etiquetaChoque = (h) => ((h.contraste?.puntaje || 0) >= 40 ? '<span class="etiqueta choque" title="La izquierda y la derecha la titulan muy distinto">Lados enfrentados</span>' : '');
+/** Las noticias donde más chocan los lados (las dos la cuentan y titulan distinto). */
+const masContraste = (lista, minimo = 20) => lista.filter((h) => (h.contraste?.puntaje || 0) >= minimo).sort((a, b) => b.contraste.puntaje - a.contraste.puntaje);
+
+/** Tarjeta grande: para las noticias más importantes después de la principal. */
+function tarjetaGrande(h) {
+  return `<a class="tarjeta grande" href="${enlaceFicha(h)}">
+    ${h.imagen ? imagen(h.imagen, 'tarjeta-img') : sinImagen('tarjeta-sin-img')}
+    <div class="tarjeta-cuerpo">
+      <div class="meta">${marcaNueva(h)}<span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span>${etiquetaTendencia(h)}</div>
+      <h3>${esc(h.titular)}</h3>
+      ${h.resumen ? `<p class="tarjeta-resumen">${esc(h.resumen.slice(0, 160))}${h.resumen.length > 160 ? '…' : ''}</p>` : ''}
+      <div class="tarjeta-pie"><div class="meta">${sello(h)}${etiquetaChoque(h)}${etiquetaCiego(h)}</div>${cobertura(h.cobertura)}</div>
+    </div>
+  </a>`;
+}
+
+/** Fila compacta para las noticias menos importantes: solo título, tema y cobertura. */
+function filaNoticia(h) {
+  return `<a class="fila-noticia" href="${enlaceFicha(h)}">
+    <div class="meta"><span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span></div>
+    <h3>${esc(h.titular)}</h3>
+    ${barra(h.cobertura)}
+  </a>`;
 }
 
 function filaSuelta(h) {
@@ -146,7 +185,7 @@ function activarVideos(contenedor) {
   }));
 }
 
-const seccion = (titulo, contenido, { enlace, sub } = {}) => `<section class="seccion">
+const seccion = (titulo, contenido, { enlace, sub, clase } = {}) => `<section class="seccion${clase ? ` ${clase}` : ''}">
   <div class="seccion-cab"><h2>${titulo}</h2>${enlace ? `<a href="${enlace[0]}">${enlace[1]}</a>` : ''}</div>
   ${sub ? `<p class="seccion-sub">${sub}</p>` : ''}
   ${contenido}
@@ -203,7 +242,12 @@ async function portada() {
       ${temasConNotas.map((t) => `<button type="button" data-tema="${t.id}" aria-pressed="${tema === t.id}">${esc(t.nombre)}</button>`).join('')}
     </div>`;
 
-    if (q) {
+    if (params.get('orden') === 'contraste') {
+      const lista = masContraste(datos.historias, 1);
+      html += `<h1 class="titulo-pagina">Donde los lados no coinciden</h1>
+        <p class="seccion-sub">La misma noticia, titulada muy distinto por la izquierda y la derecha. Ordenadas de más a menos diferencia.</p>
+        ${lista.length ? `<div class="duelos">${lista.map((h) => duelo(h)).join('')}</div>` : '<div class="vacio-grande">Ahora no hay noticias que cuenten los dos lados.</div>'}`;
+    } else if (q) {
       const palabras = sinAcentos(q).split(/\s+/).filter(Boolean);
       const coincide = (h) => {
         const texto = sinAcentos([h.titular, h.resumen, ...h.articulos.map((a) => a.titulo)].join(' '));
@@ -232,7 +276,7 @@ async function portada() {
           <a class="principal${primera.imagen ? '' : ' sin-img'}" href="${enlaceFicha(primera)}">
             ${primera.imagen ? `<img src="${esc(primera.imagen)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('sin-img');this.remove()">` : ''}
             <div class="principal-texto">
-              <div class="meta">${marcaNueva(primera)}<span class="kicker">${esc(primera.temaNombre)}</span><span>·</span><span>${cuandoNoticia(primera)}</span>${sello(primera)}</div>
+              <div class="meta">${marcaNueva(primera)}<span class="kicker">${esc(primera.temaNombre)}</span><span>·</span><span>${cuandoNoticia(primera)}</span>${sello(primera)}${etiquetaTendencia(primera)}</div>
               <h2>${esc(primera.titular)}</h2>
               ${primera.resumen ? `<p>${esc(primera.resumen.slice(0, 220))}${primera.resumen.length > 220 ? '…' : ''}</p>` : ''}
               ${cobertura(primera.cobertura, true)}
@@ -244,6 +288,14 @@ async function portada() {
           </a>`).join('')}</div>
         </div>`;
 
+        const usadas = new Set([primera.id, ...laterales.map((h) => h.id)]);
+        const duelos = masContraste(datos.historias).filter((h) => h.id !== primera.id).slice(0, 4);
+        if (duelos.length) {
+          html += seccion('Donde los lados no coinciden', `<div class="duelos">${duelos.map((h) => duelo(h)).join('')}</div>`,
+            { enlace: ['./?orden=contraste', 'Ver todas →'], sub: 'La misma noticia, titulada muy distinto por la izquierda y la derecha.', clase: 'destacada-seccion' });
+          duelos.forEach((h) => usadas.add(h.id));
+        }
+
         if (resumenHoy?.bloques?.length) {
           html += `<a class="banda-hoy" href="hoy.html">
             <div class="reloj"><div><b>${resumenHoy.minutos}</b><small>min</small></div></div>
@@ -253,7 +305,13 @@ async function portada() {
           </a>`;
         }
 
-        html += seccion('Más noticias', `<div class="grilla">${resto.slice(4, 16).map(tarjeta).join('')}</div>`, { sub: 'Ordenadas por cuántos medios las cuentan y qué tan recientes son.' });
+        const siguientes = resto.slice(4).filter((h) => !usadas.has(h.id));
+        const grandes = siguientes.slice(0, 2);
+        const normales = siguientes.slice(2, 11);
+        const otras = siguientes.slice(11, 31);
+        if (grandes.length) html += seccion('Lo más importante ahora', `<div class="grilla-grande">${grandes.map(tarjetaGrande).join('')}</div>
+          <div class="grilla" style="margin-top:24px">${normales.map(tarjeta).join('')}</div>`, { sub: 'Las que más medios están publicando en este momento.' });
+        if (otras.length) html += seccion('Otras noticias', `<div class="filas">${otras.map(filaNoticia).join('')}</div>`);
 
         const ciegosIzq = datos.historias.filter((h) => h.soloCubre === 'izquierda').slice(0, 3);
         const ciegosDer = datos.historias.filter((h) => h.soloCubre === 'derecha').slice(0, 3);
@@ -440,7 +498,7 @@ async function ficha() {
         <div class="meta">${sello(h)}${etiquetaCiego(h)}</div>
         <div class="cobertura-ficha"><b>¿Quién la cuenta?</b>${cobertura(h.cobertura, true)}</div>
       </header>
-      <div id="cada-lado">${seccion('<span class="paso">1</span>Qué dice cada lado', `<div class="lados">${lados}</div>${botones('¿Qué cuenta cada lado?', '¿Quién no la cuenta?')}`, { sub: 'Cómo titula la noticia cada medio y qué palabras usa solo cada lado.' })}</div>
+      <div id="cada-lado">${seccion('<span class="paso">1</span>Qué dice cada lado', `${h.contraste && h.contraste.puntaje >= 20 ? `<p class="duelo-intro">Lo que más se diferencia entre los dos lados:</p>${duelo(h, { compacto: true })}` : ''}<div class="lados">${lados}</div>${botones('¿Qué cuenta cada lado?', '¿Quién no la cuenta?')}`, { sub: 'Cómo titula la noticia cada medio y qué palabras usa solo cada lado.' })}</div>
       ${h.imagen ? `<img class="ficha-img" src="${esc(h.imagen)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
       <div id="que-paso">${seccion('<span class="paso">2</span>Qué pasó', quePaso)}</div>
       ${s ? `<div id="corroboracion">${seccion('<span class="paso">3</span>¿Está confirmada?', corroboracion, { sub: 'Cuánto respaldo tiene la noticia entre los medios y en qué se apoya.' })}</div>` : ''}
@@ -651,6 +709,8 @@ async function metodo() {
       <p><b>Cobertura.</b> Cuántos medios de cada lado publicaron la noticia. Contamos medios, no notas: si un diario publica tres notas, cuenta una vez.</p>
       <p><b>Punto ciego.</b> Al menos dos medios de un lado la publicaron y ninguno del otro.</p>
       <p><b>La opinión va aparte.</b> Las columnas y editoriales entran por las secciones de opinión de los medios, se muestran en «¿Qué opinan?» y en <a href="opinion.html">Opinión</a>, y no cuentan para la cobertura, los puntos ciegos ni la solidez.</p>
+      <p><b>Índice de contraste.</b> Cuando la izquierda y la derecha cuentan la misma noticia, comparamos las palabras de sus titulares y bajadas. Si casi no comparten palabras, cada lado está contando otra cosa: esas noticias van a «Donde los lados no coinciden», con los dos titulares enfrentados, y suben en la portada. Las columnas de opinión sobre el tema también suman.</p>
+      <p><b>En tendencia.</b> No medimos qué se lee en cada diario. Como aproximación, marcamos «En tendencia» las noticias que aparecen entre las destacadas de Google Noticias Argentina, y las subimos en la portada.</p>
       <p><b>Regla de simetría.</b> Las reglas no saben de qué lado es cada medio: un trascendido resta lo mismo en Página/12 que en La Nación. El código es público en <a href="https://github.com/tcostamagna/contraste" target="_blank" rel="noopener">GitHub</a>.</p>`)}
 
     ${seccion('Videos', `<p>Leemos los canales oficiales de YouTube de 8 de los medios y mostramos un video junto a una noticia cuando su título se parece a los titulares de esa noticia (como mucho, uno por medio). Usamos el reproductor de YouTube sin cookies, y no se carga hasta que tocás. Que un video esté acá no quiere decir que hayamos comprobado lo que muestra.</p>`)}

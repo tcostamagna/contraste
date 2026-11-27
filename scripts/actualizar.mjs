@@ -16,7 +16,7 @@ import { temaDe, nombreTema, TEMAS } from '../lib/temas.mjs';
 import { slug } from '../lib/texto.mjs';
 import { idDeCanal, descargarVideos, asignarVideos } from '../lib/videos.mjs';
 import { asignarPorSimilitud } from '../lib/asignar.mjs';
-import { palabrasPorLado, cifrasPorMedio, esOpinion } from '../lib/lados.mjs';
+import { palabrasPorLado, cifrasPorMedio, esOpinion, contrastePorLados } from '../lib/lados.mjs';
 import { solidez } from '../lib/solidez.mjs';
 
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -196,6 +196,7 @@ function armarHistoria(grupo, mediosPorId) {
     solidez: { puntaje: sol.puntaje, nivel: sol.nivel, etiqueta: sol.etiqueta, senales: sol.senales },
     relleno: sol.relleno,
     palabras: vistos.size >= 2 ? palabrasPorLado(arts) : null,
+    contraste: conNombres(contrastePorLados(arts, cobertura), nombres),
     cifras: cifras.map((c, i) => ({ ...c, veredicto: sol.cifras[i] })),
     articulos: arts.map((a) => ({
       medio: a.medio,
@@ -207,6 +208,36 @@ function armarHistoria(grupo, mediosPorId) {
       fecha: a.fecha,
     })),
   };
+}
+
+function conNombres(c, nombres) {
+  if (!c) return null;
+  return { ...c, izquierda: { ...c.izquierda, nombre: nombres[c.izquierda.medio] }, derecha: { ...c.derecha, nombre: nombres[c.derecha.medio] } };
+}
+
+/**
+ * Noticias destacadas de Google Noticias Argentina: lo más parecido a «lo más leído» que hay disponible en público.
+ * Marca las historias que aparecen ahí (`enTendencia`).
+ */
+async function marcarTendencias(historias) {
+  const feeds = [
+    'https://news.google.com/rss?hl=es-419&gl=AR&ceid=AR:es-419',
+    'https://news.google.com/rss/headlines/section/topic/NATION?hl=es-419&gl=AR&ceid=AR:es-419',
+  ];
+  const items = [];
+  for (const f of feeds) {
+    try {
+      items.push(...leerFeed(await descargar(f)).map((n) => ({ titulo: n.titulo.replace(/\s+[-–]\s+[^-–]+$/, ''), medio: 'google' })));
+    } catch (e) {
+      log(`  ✗ Google Noticias destacadas: ${e.message}`);
+    }
+  }
+  const asignados = asignarPorSimilitud(historias, items, 'tendencia', { umbral: 0.3, maxPorHistoria: 20, unoPorMedio: false });
+  for (const h of historias) {
+    h.enTendencia = Boolean(h.tendencia?.length);
+    delete h.tendencia;
+  }
+  log(`Tendencias: ${items.length} destacadas de Google Noticias, ${new Set(asignados.map((a) => a.historia)).size} noticias en tendencia`);
 }
 
 async function videosDeMedios(archivo, mediosPorId, historias) {
@@ -353,7 +384,15 @@ async function main() {
   // 6. Videos de los canales de YouTube de los medios
   const estadoVideos = DEMO ? [] : await videosDeMedios(archivo, mediosPorId, conVarios);
 
-  // 7. Ponete al día
+  // 8. Ponete al día
+  // 7. Relevancia y polémica: las que están en tendencia y en las que los lados más chocan suben en la portada.
+  if (!DEMO) await marcarTendencias(conVarios);
+  for (const h of conVarios) {
+    if (h.contraste) h.contraste.puntaje = Math.min(100, h.contraste.puntaje + Math.min(15, 5 * (h.opiniones?.length || 0)));
+    h.puntaje = Math.round((h.puntaje + (h.enTendencia ? 12 : 0) + (h.contraste?.puntaje || 0) * 0.15) * 10) / 10;
+  }
+  conVarios.sort((a, b) => b.puntaje - a.puntaje);
+
   const hoy = armarHoy(conVarios);
 
   await mkdir(SALIDA, { recursive: true });
