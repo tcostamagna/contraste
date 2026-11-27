@@ -26,6 +26,7 @@ const SALIDA = path.join(RAIZ, 'public', 'datos');
 const HORAS_ARCHIVO = 72; // cuánto se guarda cada nota
 const HORAS_AGRUPAR = 36; // qué notas se usan para armar las noticias (para seguir una noticia que empezó ayer)
 const HORAS_PORTADA = 24; // una noticia entra al sitio solo si empezó en las últimas 24 horas, como un diario
+const HORAS_SIN_NOVEDAD = 12; // una noticia sin notas nuevas en 12 horas sale del sitio
 const HORAS_SUELTAS = 12; // notas de un solo medio: las de las últimas 12 horas
 // El sitio no cubre deportes ni espectáculos: se descartan por sección del diario y por tema.
 const TEMAS_EXCLUIDOS = new Set(['deportes', 'espectaculos']);
@@ -150,12 +151,19 @@ function armarHistoria(grupo, mediosPorId) {
     if (cobertura.derecha >= 2 && cobertura.izquierda === 0) soloCubre = 'derecha';
   }
 
-  // El titular sale de la nota más representativa, preferentemente de un medio de centro y con bajada.
-  const deCentro = arts.filter((a) => a.lado === 'centro' && a.descripcion);
-  const base = deCentro.includes(grupo.representativo) || !deCentro.length ? grupo.representativo : deCentro[0];
-  const resumen = base.descripcion || arts.find((a) => a.descripcion)?.descripcion || '';
   const primero = arts[0];
   const ultima = arts[arts.length - 1];
+  // Titular: si la noticia sigue desarrollándose, sale de las notas de las últimas 6 horas (el último avance, no la
+  // primera nota de ayer). Entre ellas se prefiere la más representativa, de un medio de centro y con bajada.
+  const recientes = DEMO ? arts : arts.filter((a) => horasDesde(a.fecha) <= 6);
+  const candidatas = recientes.length ? recientes : arts;
+  const deCentro = candidatas.filter((a) => a.lado === 'centro' && a.descripcion);
+  const base = candidatas.includes(grupo.representativo) && (grupo.representativo.lado === 'centro' || !deCentro.length)
+    ? grupo.representativo
+    : deCentro[deCentro.length - 1] || candidatas.filter((a) => a.descripcion).pop() || candidatas[candidatas.length - 1];
+  const resumen = base.descripcion || [...candidatas].reverse().find((a) => a.descripcion)?.descripcion || '';
+  // Cuántos medios distintos la publicaron en las últimas 3 horas: mide si la noticia está «viva» ahora.
+  const mediosRecientes = new Set(arts.filter((a) => horasDesde(a.fecha) <= 3).map((a) => a.medio)).size;
   const nombres = Object.fromEntries(Object.values(mediosPorId).map((m) => [m.id, m.nombre]));
   const cifras = cifrasPorMedio(arts, nombres);
   const sol = solidez(arts, cobertura, cifras, nombres);
@@ -175,8 +183,15 @@ function armarHistoria(grupo, mediosPorId) {
     cobertura,
     soloCubre,
     primero: { medio: primero.medio, nombre: mediosPorId[primero.medio].nombre, lado: primero.lado, fecha: primero.fecha },
-    // La antigüedad se cuenta desde que empezó la noticia: una nota nueva sobre un tema de ayer no la vuelve «de hoy».
-    puntaje: Math.round((vistos.size * 10 + lados * 6 - Math.max(0, horasDesde(primero.fecha)) * 0.9 - (sol.relleno ? 25 : 0) + sol.puntaje * 0.1) * 10) / 10,
+    // Orden de la portada, como un diario: pesa la cobertura, pero más lo que se está publicando ahora. Resta la
+    // antigüedad desde que empezó y el tiempo sin notas nuevas; suma los medios que la publicaron en las últimas 3 h.
+    puntaje: Math.round((
+      vistos.size * 6 + lados * 5 + mediosRecientes * 8
+      - Math.max(0, horasDesde(primero.fecha)) * 2
+      - Math.max(0, horasDesde(ultima.fecha)) * 3
+      - (sol.relleno ? 25 : 0) + sol.puntaje * 0.05
+    ) * 10) / 10,
+    mediosRecientes,
     solidez: { puntaje: sol.puntaje, nivel: sol.nivel, etiqueta: sol.etiqueta, senales: sol.senales },
     relleno: sol.relleno,
     palabras: vistos.size >= 2 ? palabrasPorLado(arts) : null,
@@ -314,7 +329,8 @@ async function main() {
     .map((g) => armarHistoria(g, mediosPorId))
     .filter((h) => !TEMAS_EXCLUIDOS.has(h.tema));
   const conVarios = historias
-    .filter((h) => h.medios >= 2 && (DEMO || horasDesde(h.fecha) <= HORAS_PORTADA))
+    // Entra si empezó en las últimas 24 h y tuvo alguna nota nueva en las últimas 12 h (si no, ya es vieja).
+    .filter((h) => h.medios >= 2 && (DEMO || (horasDesde(h.fecha) <= HORAS_PORTADA && horasDesde(h.actualizado) <= HORAS_SIN_NOVEDAD)))
     .sort((a, b) => b.puntaje - a.puntaje)
     .slice(0, 200);
   const sueltas = historias

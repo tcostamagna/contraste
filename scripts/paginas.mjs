@@ -5,6 +5,8 @@ import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+// Versión de los archivos: cambia en cada publicación para que el navegador no use un app.js o estilos.css viejos.
+const VERSION = process.env.VERSION || String(Date.now());
 const PUBLICO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 const DESCRIPCION = 'La misma noticia contada por los medios argentinos de izquierda, centro y derecha: quién la publica, quién no, cómo la titula cada uno y qué opinan sus columnistas.';
 
@@ -42,7 +44,7 @@ const plantilla = (vista, titulo) => `<!doctype html>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700;8..60,800&display=swap">
-  <link rel="stylesheet" href="estilos.css">
+  <link rel="stylesheet" href="estilos.css?v=${VERSION}">
 </head>
 <body data-vista="${vista}">
   <a class="saltar" href="#contenido">Ir al contenido</a>
@@ -75,7 +77,7 @@ ${MENU.map(([href, id, texto]) => `        <a href="${href}"${id === vista ? ' a
       </div>
     </div>
   </footer>
-  <script src="app.js" defer></script>
+  <script src="app.js?v=${VERSION}" defer></script>
 </body>
 </html>
 `;

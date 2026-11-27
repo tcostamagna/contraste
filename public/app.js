@@ -39,14 +39,20 @@ function cuando(iso) {
 /** Cuándo empezó la noticia y, si siguió otro día, que sigue. */
 function cuandoNoticia(h) {
   const inicio = cuando(h.fecha);
-  return h.actualizado && diaAR(h.actualizado) !== diaAR(h.fecha) && diaAR(h.actualizado) === diaAR(Date.now()) ? `${inicio} · sigue hoy` : inicio;
+  // Si siguió sumando notas después de empezar, lo que importa es la última: «hace 20 min · empezó ayer 21:10».
+  if (h.actualizado && Date.parse(h.actualizado) - Date.parse(h.fecha) > 3600e3) {
+    return `${haceCuanto(h.actualizado).replace(/^h/, 'H').replace(/^r/, 'R')} · empezó ${inicio.replace(/^H/, 'h').replace(/^A/, 'a')}`;
+  }
+  return inicio;
 }
+const esNueva = (h) => Date.now() - Date.parse(h.fecha) < 2 * 3600e3;
+const marcaNueva = (h) => (esNueva(h) ? '<span class="nueva">Nueva</span>' : '');
 const sello = (h) => (h.solidez ? `<span class="sello s-${h.solidez.nivel}" title="${esc(h.solidez.etiqueta)}: índice de solidez ${h.solidez.puntaje} de 100"><b>${h.solidez.puntaje}</b>${esc(h.solidez.etiqueta)}</span>` : '');
 const horaCorta = (iso) => new Date(iso).toLocaleTimeString('es-AR', { timeZone: ZONA, hour: '2-digit', minute: '2-digit' });
 
 const cache = {};
 function cargar(nombre) {
-  cache[nombre] ||= fetch(`datos/${nombre}.json`, { cache: 'no-cache' }).then((r) => {
+  cache[nombre] ||= fetch(`datos/${nombre}.json?t=${Math.floor(Date.now() / 60000)}`, { cache: 'no-store' }).then((r) => {
     if (!r.ok) throw new Error(`No se pudo leer datos/${nombre}.json (${r.status})`);
     return r.json();
   });
@@ -71,7 +77,7 @@ function tarjeta(h) {
   return `<a class="tarjeta" href="${enlaceFicha(h)}">
     ${h.imagen ? imagen(h.imagen, 'tarjeta-img') : sinImagen('tarjeta-sin-img')}
     <div class="tarjeta-cuerpo">
-      <div class="meta"><span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span></div>
+      <div class="meta">${marcaNueva(h)}<span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span></div>
       <h3>${esc(h.titular)}</h3>
       <div class="tarjeta-pie">
         <div class="meta">${sello(h)}${etiquetaCiego(h)}${h.videos?.length ? `<span class="etiqueta video">▶ ${plural(h.videos.length, 'video', 'videos')}</span>` : ''}${h.opiniones?.length ? `<span class="etiqueta video">✎ ${plural(h.opiniones.length, 'columna', 'columnas')}</span>` : ''}</div>
@@ -204,7 +210,7 @@ async function portada() {
           <a class="principal${primera.imagen ? '' : ' sin-img'}" href="${enlaceFicha(primera)}">
             ${primera.imagen ? `<img src="${esc(primera.imagen)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('sin-img');this.remove()">` : ''}
             <div class="principal-texto">
-              <div class="meta"><span class="kicker">${esc(primera.temaNombre)}</span><span>·</span><span>${cuandoNoticia(primera)}</span>${sello(primera)}</div>
+              <div class="meta">${marcaNueva(primera)}<span class="kicker">${esc(primera.temaNombre)}</span><span>·</span><span>${cuandoNoticia(primera)}</span>${sello(primera)}</div>
               <h2>${esc(primera.titular)}</h2>
               ${primera.resumen ? `<p>${esc(primera.resumen.slice(0, 220))}${primera.resumen.length > 220 ? '…' : ''}</p>` : ''}
               ${barra(primera.cobertura, true)}
@@ -213,7 +219,7 @@ async function portada() {
           </a>
           <div class="laterales">${laterales.map((h) => `<a class="lateral-nota" href="${enlaceFicha(h)}">
             ${h.imagen ? `<img src="${esc(h.imagen)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'mini-sin-img'}))">` : sinImagen('mini-sin-img')}
-            <div><div class="meta"><span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuando(h.fecha)}</span></div><h3>${esc(h.titular)}</h3>${barra(h.cobertura)}</div>
+            <div><div class="meta">${marcaNueva(h)}<span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span></div><h3>${esc(h.titular)}</h3>${barra(h.cobertura)}</div>
           </a>`).join('')}</div>
         </div>`;
 
@@ -695,8 +701,36 @@ async function medios() {
   pie(datos.generado);
 }
 
+/**
+ * Que nunca quede una portada vieja en pantalla. Al volver a la pestaña (o si el navegador restaura la página de su
+ * memoria) se fija si hay datos más nuevos y recarga. Con la página abierta, revisa cada 5 minutos y ofrece actualizar.
+ */
+function vigilarNovedades() {
+  let mostrado = null;
+  cargar('historias').then((d) => { mostrado = d.generado; }).catch(() => {});
+  const ultimo = () => fetch(`datos/historias.json?t=${Date.now()}`, { cache: 'no-store' }).then((r) => r.json()).then((d) => d.generado).catch(() => null);
+  const revisar = async (recargarSolo) => {
+    if (!mostrado) return;
+    const g = await ultimo();
+    if (!g || g === mostrado) return;
+    if (recargarSolo) { location.reload(); return; }
+    if (document.getElementById('hay-nuevas')) return;
+    const b = document.createElement('button');
+    b.id = 'hay-nuevas';
+    b.type = 'button';
+    b.className = 'hay-nuevas';
+    b.textContent = '↻ Hay noticias nuevas · Actualizar';
+    b.addEventListener('click', () => location.reload());
+    document.body.appendChild(b);
+  };
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') revisar(true); });
+  addEventListener('pageshow', (e) => { if (e.persisted) revisar(true); });
+  setInterval(() => revisar(false), 5 * 60e3);
+}
+
 const paginas = { portada, ciegos, ficha, medios, hoy, opinion: opinionPagina, metodo };
 ticker();
+vigilarNovedades();
 (paginas[document.body.dataset.vista] || portada)().catch((e) => {
   raiz().innerHTML = `<div class="vacio-grande">No se pudieron cargar las noticias. ${esc(e.message)}</div>`;
 });

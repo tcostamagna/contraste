@@ -55,6 +55,11 @@ jobs:
       - name: Descargar y agrupar noticias
         run: npm run actualizar
 
+      - name: Generar páginas con versión nueva
+        env:
+          VERSION: ${{ github.run_id }}
+        run: node scripts/paginas.mjs
+
       - name: Guardar archivo
         if: always()
         uses: actions/cache/save@v4
