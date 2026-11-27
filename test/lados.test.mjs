@@ -42,3 +42,11 @@ test('contraste: alto si los lados titulan distinto, bajo si titulan igual, nulo
   assert.equal(distinto.izquierda.medio, 'p');
   assert.equal(contrastePorLados([{ medio: 'p', lado: 'izquierda', titulo: 'x' }], { izquierda: 1, centro: 0, derecha: 0 }), null);
 });
+
+test('contraste: no enfrenta titulares que hablan de cosas distintas', () => {
+  const c = contrastePorLados([
+    { medio: 'p', lado: 'izquierda', titulo: 'El Gobierno de Santa Cruz enfrenta un paro docente' },
+    { medio: 'c', lado: 'derecha', titulo: 'Jorge Brito habló sobre el futuro del Gobierno y la economía' },
+  ], { izquierda: 1, centro: 0, derecha: 1 });
+  assert.equal(c, null);
+});

@@ -37,3 +37,15 @@ test('tema por palabras clave y categorías', () => {
   assert.equal(temaDe([nota('a', 'centro', 'El dólar y la inflación según el BCRA')]), 'economia');
   assert.equal(temaDe([{ ...nota('a', 'centro', 'Algo pasó'), categorias: ['Deportes'] }]), 'deportes');
 });
+
+test('no junta noticias distintas que solo comparten palabras genéricas', () => {
+  const grupos = agrupar([
+    nota('a', 'izquierda', 'El Gobierno de Santa Cruz enfrenta un paro docente por salarios', 'Los gremios docentes de Santa Cruz rechazan la oferta del Gobierno', 0),
+    nota('b', 'derecha', 'Santa Cruz: el Gobierno provincial ofreció un aumento a los docentes', 'Paro docente en Santa Cruz', 1),
+    nota('c', 'derecha', 'Brito habló del Gobierno y del paro en la economía', 'El banquero Jorge Brito opinó sobre el Gobierno', 1),
+  ]);
+  const conBrito = grupos.find((g) => g.articulos.some((a) => a.medio === 'c'));
+  assert.equal(conBrito.articulos.length, 1, 'la nota sobre Brito no se une a la de Santa Cruz');
+  const santaCruz = grupos.find((g) => g.articulos.some((a) => a.medio === 'a'));
+  assert.equal(santaCruz.articulos.length, 2);
+});
