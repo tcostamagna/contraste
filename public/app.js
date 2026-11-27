@@ -68,6 +68,8 @@ function barra(c, grande = false) {
   const texto = LADOS.map(([l, n]) => `${c[l]} de ${n.toLowerCase()}`).join(', ');
   return `<div class="barra${grande ? ' grande' : ''}" role="img" aria-label="Medios que la cubren: ${texto}">${partes}</div>`;
 }
+/** Barra de cobertura con su explicación en palabras: «4 izquierda · 2 centro · 3 derecha». */
+const cobertura = (c, grande = false) => `${barra(c, grande)}<div class="cobertura-txt">${LADOS.map(([l, n]) => `<span class="${l}${c[l] ? '' : ' cero'}">${c[l]} ${n.toLowerCase()}</span>`).join('<span aria-hidden="true">·</span>')}</div>`;
 const leyenda = (c) => `<div class="leyenda">${LADOS.map(([l, n]) => `<span><span class="punto ${l}"></span><b>${c[l]}</b> ${n.toLowerCase()}</span>`).join('')}</div>`;
 const etiquetaCiego = (h) => (h.soloCubre ? `<span class="etiqueta ${h.soloCubre}">Solo la cuenta la ${h.soloCubre}</span>` : '');
 const sinImagen = (clase) => `<div class="${clase}" aria-hidden="true"><i style="background:var(--izquierda)"></i><i style="background:var(--centro)"></i><i style="background:var(--derecha)"></i></div>`;
@@ -80,12 +82,26 @@ function tarjeta(h) {
       <div class="meta">${marcaNueva(h)}<span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span></div>
       <h3>${esc(h.titular)}</h3>
       <div class="tarjeta-pie">
-        <div class="meta">${sello(h)}${etiquetaCiego(h)}${h.videos?.length ? `<span class="etiqueta video">▶ ${plural(h.videos.length, 'video', 'videos')}</span>` : ''}${h.opiniones?.length ? `<span class="etiqueta video">✎ ${plural(h.opiniones.length, 'columna', 'columnas')}</span>` : ''}</div>
-        ${barra(h.cobertura)}
-        <div class="meta"><span><b>${h.medios}</b> medios</span><span>·</span><span>primero: ${esc(h.primero.nombre)}</span></div>
+        <div class="meta">${sello(h)}${etiquetaCiego(h)}</div>
+        ${cobertura(h.cobertura)}
       </div>
     </div>
   </a>`;
+}
+
+/** Explicación corta de cómo leer el sitio. Se muestra hasta que la persona la cierra. */
+function comoLeer() {
+  try { if (localStorage.getItem('cn-como-leer') === 'cerrado') return ''; } catch { /* sin almacenamiento: se muestra */ }
+  return `<section class="como-leer" id="como-leer" aria-label="Cómo leer Contraste News">
+    <button type="button" class="cerrar" aria-label="Cerrar esta explicación" data-cerrar-como-leer>×</button>
+    <h2>La misma noticia, contada por todos los medios. Así se lee:</h2>
+    <ol>
+      <li><b>¿Quién la cuenta?</b>${cobertura({ izquierda: 4, centro: 2, derecha: 3 })}La barra muestra cuántos medios de izquierda (rojo), centro (gris) y derecha (azul) publicaron la noticia.</li>
+      <li><b>¿Qué tan respaldada está?</b><div class="meta">${sello({ solidez: { puntaje: 80, nivel: 'solida', etiqueta: 'Muy corroborada' } })}</div>Un número de 0 a 100: cuántos medios la confirman, si citan fuentes y si los datos coinciden.</li>
+      <li><b>¿Qué se pierde cada lado?</b><div class="meta"><span class="etiqueta derecha">Solo la cuenta la derecha</span></div>Las noticias que un lado cuenta y el otro no. Tocá cualquier noticia para ver cómo la titula cada lado.</li>
+    </ol>
+    <p class="nota-pie" style="margin:12px 0 0"><a href="metodo.html">Cómo funciona, en detalle →</a></p>
+  </section>`;
 }
 
 function filaSuelta(h) {
@@ -162,6 +178,9 @@ async function ticker() {
     const html = items.map(({ h, a }) => `<a href="${h.medios > 1 ? enlaceFicha(h) : esc(a.url)}"${h.medios > 1 ? '' : ' target="_blank" rel="noopener"'}><b>${horaCorta(a.fecha)}</b>${esc(a.nombre)}: ${esc(a.titulo)}</a>`).join('');
     el.innerHTML = `<span class="ticker-etiqueta">Último momento</span><div class="ticker-ventana"><div class="ticker-pista">${html}${html.replace(/<a /g, '<a tabindex="-1" aria-hidden="true" ')}</div></div>`;
     el.hidden = false;
+    // Velocidad constante y ágil (unos 90 px por segundo), sea cual sea el largo de los titulares.
+    const pista = el.querySelector('.ticker-pista');
+    requestAnimationFrame(() => { pista.style.animationDuration = `${Math.max(20, Math.round(pista.scrollWidth / 2 / 90))}s`; });
   } catch {
     // La cinta es un adorno: si falla, no se muestra.
   }
@@ -201,11 +220,14 @@ async function portada() {
       const sueltas = datos.sueltas.filter((h) => h.tema === tema).slice(0, 20);
       if (sueltas.length) html += seccion('Lo que publicó un solo medio', `<div class="lista">${sueltas.map(filaSuelta).join('')}</div>`);
     } else {
-      const [primera, ...resto] = datos.historias;
+      // Sociedad va al final: la nota principal y los laterales salen de los otros temas si hay.
+      const ordenadas = [...datos.historias.filter((h) => h.tema !== 'sociedad'), ...datos.historias.filter((h) => h.tema === 'sociedad')];
+      const [primera, ...resto] = ordenadas;
       if (!primera) {
         html += '<div class="vacio-grande">Todavía no hay noticias publicadas por más de un medio.</div>';
       } else {
         const laterales = resto.slice(0, 4);
+        html += comoLeer();
         html += `<div class="portada-top">
           <a class="principal${primera.imagen ? '' : ' sin-img'}" href="${enlaceFicha(primera)}">
             ${primera.imagen ? `<img src="${esc(primera.imagen)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.add('sin-img');this.remove()">` : ''}
@@ -213,13 +235,12 @@ async function portada() {
               <div class="meta">${marcaNueva(primera)}<span class="kicker">${esc(primera.temaNombre)}</span><span>·</span><span>${cuandoNoticia(primera)}</span>${sello(primera)}</div>
               <h2>${esc(primera.titular)}</h2>
               ${primera.resumen ? `<p>${esc(primera.resumen.slice(0, 220))}${primera.resumen.length > 220 ? '…' : ''}</p>` : ''}
-              ${barra(primera.cobertura, true)}
-              <div class="meta"><span><b>${primera.medios}</b> medios la cuentan</span><span>·</span><span>primero: <b>${esc(primera.primero.nombre)}</b></span></div>
+              ${cobertura(primera.cobertura, true)}
             </div>
           </a>
           <div class="laterales">${laterales.map((h) => `<a class="lateral-nota" href="${enlaceFicha(h)}">
             ${h.imagen ? `<img src="${esc(h.imagen)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'mini-sin-img'}))">` : sinImagen('mini-sin-img')}
-            <div><div class="meta">${marcaNueva(h)}<span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span></div><h3>${esc(h.titular)}</h3>${barra(h.cobertura)}</div>
+            <div><div class="meta">${marcaNueva(h)}<span class="kicker">${esc(h.temaNombre)}</span><span>·</span><span>${cuandoNoticia(h)}</span></div><h3>${esc(h.titular)}</h3>${cobertura(h.cobertura)}</div>
           </a>`).join('')}</div>
         </div>`;
 
@@ -391,7 +412,7 @@ async function ficha() {
         ${sinCuenta.length ? `<li><b>Quién no:</b> ${sinCuenta.slice(0, 6).map((m) => esc(m.nombre)).join(', ')}${sinCuenta.length > 6 ? ` y ${sinCuenta.length - 6} más` : ''}.</li>` : ''}
       </ul>
     </div>
-    ${botones('¿Quién la publicó primero?', '¿Quién no la cuenta?')}`;
+    ${botones('¿Quién la publicó primero?')}`;
 
   // 3. Corroboración y fuentes: el índice, cada señal con las notas que la respaldan y las cifras.
   const s = h.solidez;
@@ -400,9 +421,12 @@ async function ficha() {
         <div class="solidez-cifra"><b>${s.puntaje}</b><span>de 100</span></div>
         <div class="corr-nivel"><em>${esc(s.etiqueta)}</em><div class="solidez-barra"><i style="width:${s.puntaje}%"></i></div></div>
       </div>
-      <ul class="senales grandes">${s.senales.map((x) => `<li class="${x.estado}"><span aria-hidden="true">${x.estado === 'ok' ? '✓' : x.estado === 'medio' ? '~' : '✗'}</span><div>${esc(x.texto)}${x.notas?.length ? `<div class="notas-fuente">${x.notas.slice(0, 6).map(enlaceNota).join('')}</div>` : ''}</div></li>`).join('')}</ul>
-      ${cifras.length ? `<h3 class="corr-sub">Cifras y quién las da</h3>
-        <div class="cifras">${cifras.map((c) => `<div class="cifra-fila"><div class="cifra-valor">${esc(c.cifra)}${c.veredicto ? `<span class="veredicto v-${c.veredicto.id}">${esc(c.veredicto.texto)}</span>` : ''}</div><div class="cifra-medios">${c.medios.map((m) => m.url ? `<a href="${esc(m.url)}" target="_blank" rel="noopener"><span class="punto ${m.lado}"></span>${esc(m.nombre)}</a>` : `<span><span class="punto ${m.lado}"></span>${esc(m.nombre)}</span>`).join('')}</div></div>`).join('')}</div>` : ''}
+      <ul class="senales grandes">${s.senales.map((x) => `<li class="${x.estado}"><span aria-hidden="true">${x.estado === 'ok' ? '✓' : x.estado === 'medio' ? '~' : '✗'}</span><div>${esc(x.texto)}</div></li>`).join('')}</ul>
+      ${s.senales.some((x) => x.notas?.length) ? `<details class="desplegable"><summary>Ver en qué notas se apoya</summary>
+        ${s.senales.filter((x) => x.notas?.length).map((x) => `<p class="corr-resumen"><b>${esc(x.texto)}:</b></p><div class="notas-fuente">${x.notas.slice(0, 8).map(enlaceNota).join('')}</div>`).join('')}
+      </details>` : ''}
+      ${cifras.length ? `<details class="desplegable"><summary>Ver las cifras y qué medio da cada una (${cifras.length})</summary>
+        <div class="cifras">${cifras.map((c) => `<div class="cifra-fila"><div class="cifra-valor">${esc(c.cifra)}${c.veredicto ? `<span class="veredicto v-${c.veredicto.id}">${esc(c.veredicto.texto)}</span>` : ''}</div><div class="cifra-medios">${c.medios.map((m) => m.url ? `<a href="${esc(m.url)}" target="_blank" rel="noopener"><span class="punto ${m.lado}"></span>${esc(m.nombre)}</a>` : `<span><span class="punto ${m.lado}"></span>${esc(m.nombre)}</span>`).join('')}</div></div>`).join('')}</div></details>` : ''}
       <p class="nota-pie">No decimos si algo es verdad o mentira: medimos cuánto respaldo tiene entre los medios y en qué se apoya. <a href="metodo.html#solidez">Cómo se calcula</a>.</p>
     </div>
     ${botones('¿Está corroborada?', cifras.length ? '¿Qué cifras dan?' : '')}` : '';
@@ -411,34 +435,25 @@ async function ficha() {
   <div class="ficha">
     <article>
       <header class="ficha-cab">
-        <div class="meta"><a href="./?tema=${esc(h.tema)}" class="kicker">${esc(h.temaNombre)}</a><span>·</span><span>Empezó ${cuando(h.fecha).replace(/^H/, 'h').replace(/^A/, 'a')}</span>${h.actualizado !== h.fecha ? `<span>·</span><span>última nota ${cuando(h.actualizado).replace(/^H/, 'h').replace(/^A/, 'a')}</span>` : ''}</div>
+        <div class="meta">${marcaNueva(h)}<a href="./?tema=${esc(h.tema)}" class="kicker">${esc(h.temaNombre)}</a><span>·</span><span>${cuandoNoticia(h)}</span></div>
         <h1>${esc(h.titular)}</h1>
         <div class="meta">${sello(h)}${etiquetaCiego(h)}</div>
-        ${barra(h.cobertura, true)}
-        ${leyenda(h.cobertura)}
-        ${h.imagen ? `<img class="ficha-img" src="${esc(h.imagen)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
-        <nav class="indice-ficha" aria-label="En esta noticia"><a href="#que-paso">Qué pasó</a><a href="#cada-lado">Cada lado</a>${s ? '<a href="#corroboracion">Corroboración</a>' : ''}${h.opiniones?.length ? '<a href="#opinan">Qué opinan</a>' : ''}${h.videos?.length ? '<a href="#videos">Videos</a>' : ''}<a href="#fuentes">Todas las fuentes</a></nav>
+        <div class="cobertura-ficha"><b>¿Quién la cuenta?</b>${cobertura(h.cobertura, true)}</div>
       </header>
-      <div id="que-paso">${seccion('<span class="paso">1</span>Qué pasó', quePaso)}</div>
-      <div id="cada-lado">${seccion('<span class="paso">2</span>Cómo lo cuenta cada lado', `<div class="lados">${lados}</div>${botones('¿Qué cuenta cada lado?')}`, { sub: 'Qué titula cada medio y qué palabras elige cada lado.' })}</div>
-      ${s ? `<div id="corroboracion">${seccion('<span class="paso">3</span>Corroboración y fuentes', corroboracion, { sub: 'Cuánto respaldo tiene la noticia y qué notas lo dan.' })}</div>` : ''}
+      <div id="cada-lado">${seccion('<span class="paso">1</span>Qué dice cada lado', `<div class="lados">${lados}</div>${botones('¿Qué cuenta cada lado?', '¿Quién no la cuenta?')}`, { sub: 'Cómo titula la noticia cada medio y qué palabras usa solo cada lado.' })}</div>
+      ${h.imagen ? `<img class="ficha-img" src="${esc(h.imagen)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}
+      <div id="que-paso">${seccion('<span class="paso">2</span>Qué pasó', quePaso)}</div>
+      ${s ? `<div id="corroboracion">${seccion('<span class="paso">3</span>¿Está confirmada?', corroboracion, { sub: 'Cuánto respaldo tiene la noticia entre los medios y en qué se apoya.' })}</div>` : ''}
       ${h.opiniones?.length ? `<div id="opinan">${seccion('¿Qué opinan?', `<div class="columnas-op">${h.opiniones.map((c) => columnaOpinion(c)).join('')}</div>${botones('¿Qué opinan los columnistas?')}`, { sub: 'Columnas y editoriales sobre esta noticia. La opinión no cuenta para la cobertura ni para la solidez.' })}</div>` : ''}
       ${h.videos?.length ? `<div id="videos">${seccion('En video', `<div class="videos">${h.videos.map((v) => tarjetaVideo(v)).join('')}</div>`, { sub: 'Lo que publicaron los canales de YouTube de los medios. No verificamos lo que muestran.' })}</div>` : ''}
-      <div id="fuentes">${seccion('Todas las fuentes', `<div class="columnas">${columnas}</div>`, { sub: 'Cada nota que agrupamos en esta noticia, con enlace al original.' })}</div>
+      <div id="fuentes">${seccion('Todas las fuentes', `<details class="desplegable"><summary>Ver las ${h.articulos.length} notas, con enlace al original</summary><div class="columnas">${columnas}</div></details>`)}</div>
       ${relacionadas.length ? seccion('Seguí leyendo', `<div class="grilla">${relacionadas.map(tarjeta).join('')}</div>`) : ''}
       ${siguiente ? `<a class="boton-siguiente" href="${enlaceFicha(siguiente)}"><span>Siguiente noticia</span><b>${esc(siguiente.titular)}</b><i aria-hidden="true">→</i></a>` : ''}
     </article>
     <aside class="lateral">
-      <section class="caja">
-        <h2>Cobertura</h2>
-        <div class="cifra-grande">${h.medios}</div>
-        <p class="nota-pie">${h.medios === 1 ? 'medio la publicó' : 'medios la publicaron'}</p>
-        ${barra(h.cobertura, true)}
-        ${leyenda(h.cobertura)}
-        ${s ? `<a class="mini-solidez s-${s.nivel}" href="#corroboracion"><b>${s.puntaje}</b><span>Solidez · ${esc(s.etiqueta)}</span><i aria-hidden="true">→</i></a>` : ''}
-      </section>
+      ${s ? `<section class="caja solo-escritorio"><h2>¿Está confirmada?</h2><a class="mini-solidez s-${s.nivel}" href="#corroboracion"><b>${s.puntaje}</b><span>${esc(s.etiqueta)} · ver por qué</span><i aria-hidden="true">→</i></a></section>` : ''}
       <section class="caja preguntas" id="preguntas" aria-label="Preguntas rápidas sobre esta noticia"></section>
-      <section class="caja">
+      <section class="caja solo-escritorio">
         <h2>Quién la publicó primero</h2>
         <ol class="linea-tiempo">${orden.map((a) => `<li><time>${horaCorta(a.fecha)}</time><span><span class="punto ${a.lado}"></span>${esc(a.nombre)}</span></li>`).join('')}</ol>
       </section>
@@ -564,7 +579,7 @@ async function hoy() {
               ${b.texto ? `<p>${esc(b.texto)}</p>` : ''}
               ${b.mas ? `<div class="otra-mirada ${b.mas.lado}"><b>Otra mirada · ${esc(b.mas.nombre)}</b>${esc(b.mas.texto)}</div>` : ''}
               <div class="asi-titulan">${LADOS.map(([l, n]) => `<div><b><span class="punto ${l}"></span>${n}</b>${b.lados[l] ? `<span>«${esc(b.lados[l].titulo)}» <small class="nota-pie">${esc(b.lados[l].nombre)}</small></span>` : '<span class="falta">No la cuenta</span>'}</div>`).join('')}</div>
-              ${b.cobertura ? barra(b.cobertura) : ''}
+              ${b.cobertura ? cobertura(b.cobertura) : ''}
               <a class="hoy-mas" href="${enlaceFicha(b.id)}">Ver cómo la cuenta cada medio →</a>
             </div>
           </div>
@@ -614,9 +629,9 @@ async function metodo() {
     </div>`)}
 
     ${seccion('Qué tiene cada noticia', `<ol>
+      <li><b>Qué dice cada lado:</b> lo primero que ves. Los titulares de izquierda, centro y derecha, una bajada de cada lado y las palabras que usa solo ese lado (por ejemplo, la izquierda dice «jubilados» y la derecha «celebra»).</li>
       <li><b>Qué pasó:</b> un resumen corto, tomado de la bajada del medio más representativo (preferimos uno de centro), con el enlace a esa nota. Abajo, cuándo empezó, quién la cuenta y quién no.</li>
-      <li><b>Cómo lo cuenta cada lado:</b> los titulares de cada lado, una bajada y las palabras que usa solo ese lado (por ejemplo, la izquierda dice «jubilados» y la derecha «celebra»).</li>
-      <li><b>Corroboración y fuentes:</b> el índice de solidez, cada señal con las notas que la respaldan y las cifras con el medio que da cada una.</li>
+      <li><b>¿Está confirmada?:</b> el índice de solidez explicado en pocas líneas. Si querés más, se despliegan las notas en las que se apoya cada señal y las cifras con el medio que da cada una.</li>
       <li>Además: qué opinan los columnistas, los videos de los medios, todas las fuentes y noticias relacionadas.</li>
     </ol>`)}
 
@@ -731,6 +746,17 @@ function vigilarNovedades() {
 const paginas = { portada, ciegos, ficha, medios, hoy, opinion: opinionPagina, metodo };
 ticker();
 vigilarNovedades();
+document.querySelector('.boton-buscar')?.addEventListener('click', (e) => {
+  const cab = document.querySelector('.cabecera');
+  const abierto = cab.classList.toggle('buscando');
+  e.currentTarget.setAttribute('aria-expanded', String(abierto));
+  if (abierto) document.getElementById('q')?.focus();
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-cerrar-como-leer]')) return;
+  try { localStorage.setItem('cn-como-leer', 'cerrado'); } catch { /* no se recuerda, pero se cierra igual */ }
+  document.getElementById('como-leer')?.remove();
+});
 (paginas[document.body.dataset.vista] || portada)().catch((e) => {
   raiz().innerHTML = `<div class="vacio-grande">No se pudieron cargar las noticias. ${esc(e.message)}</div>`;
 });

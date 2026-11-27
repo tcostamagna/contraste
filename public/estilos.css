@@ -539,3 +539,87 @@ button { font: inherit; }
   background: var(--acento-2); color: #1a0d09; font-weight: 800; border: 0; border-radius: 999px; padding: 12px 20px;
   box-shadow: var(--sombra-alta); cursor: pointer; font-size: 0.95rem;
 }
+
+/* =========================================================
+   Rediseño: más aire, menos piezas, todo explicado
+   ========================================================= */
+body { font-size: 16.5px; }
+
+/* Cabecera compacta */
+.cabecera-in { gap: 22px; padding: 12px 16px; flex-wrap: nowrap; }
+.nav { margin-left: 0; flex-wrap: nowrap; }
+.nav a { font-size: 0.95rem; padding: 8px 14px; }
+.cabecera-acciones { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.cabecera .buscador { flex: none; width: 220px; min-width: 0; max-width: none; }
+.boton-icono { display: none; width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.15); background: var(--oscuro-2); color: #e6e7ea; cursor: pointer; align-items: center; justify-content: center; }
+.boton-ayuda { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: #e6e7ea; font-size: 0.9rem; font-weight: 600; padding: 6px 12px 6px 6px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.15); white-space: nowrap; }
+.boton-ayuda > span:first-child { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--acento-2); color: #1a0d09; font-weight: 800; }
+.boton-ayuda:hover, .boton-ayuda.activo { background: rgba(255, 255, 255, 0.08); }
+@media (max-width: 1000px) { .boton-ayuda-texto { display: none; } .boton-ayuda { padding: 6px; } }
+@media (max-width: 860px) {
+  .cabecera { position: relative; } /* en el celular la cabecera no queda fija: deja la pantalla para las noticias */
+  .cabecera-in { flex-wrap: wrap; gap: 8px 10px; padding: 10px 14px 6px; }
+  .nav { order: 3; flex-basis: 100%; overflow-x: auto; margin: 0 -6px; scrollbar-width: none; }
+  .nav::-webkit-scrollbar { display: none; }
+  .nav a { flex: none; font-size: 0.9rem; padding: 7px 12px; }
+  .cabecera .buscador { display: none; order: 4; flex-basis: 100%; width: 100%; }
+  .cabecera.buscando .buscador { display: block; }
+  .boton-icono { display: inline-flex; }
+}
+
+/* Cinta: más rápida (la velocidad la fija app.js según el largo) */
+.ticker-pista { animation-duration: 35s; }
+.ticker { font-size: 0.88rem; }
+
+.contenedor { padding: 28px 18px 80px; }
+.seccion { margin-top: 56px; }
+.seccion-cab { border-bottom-width: 3px; margin-bottom: 18px; }
+.seccion-cab h2 { font-size: 1.6rem; }
+.seccion-sub { font-size: 1rem; margin: -8px 0 20px; }
+
+/* Explicación de una sola vez: cómo leer el sitio */
+.como-leer { position: relative; background: var(--papel); border: 1px solid var(--linea); border-radius: 18px; padding: 18px 20px; margin-bottom: 22px; box-shadow: var(--sombra); }
+.como-leer h2 { font: 800 1.15rem/1.2 var(--serif); margin: 0 0 12px; padding-right: 36px; }
+.como-leer ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 760px) { .como-leer ol { grid-template-columns: 1fr; gap: 14px; } }
+.como-leer li { display: grid; gap: 8px; align-content: start; font-size: 0.95rem; color: var(--tinta-2); }
+.como-leer li b { color: var(--tinta); display: block; font-size: 1rem; }
+.como-leer .cerrar { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--linea); background: var(--fondo); cursor: pointer; font-size: 1.1rem; color: var(--tinta-2); }
+.como-leer a { color: var(--acento); font-weight: 700; }
+
+/* Barra de cobertura con su explicación al lado */
+.cobertura-txt { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 0.82rem; font-weight: 600; margin-top: 6px; }
+.cobertura-txt .izquierda { color: var(--izquierda); }
+.cobertura-txt .centro { color: var(--tinta-3); }
+.cobertura-txt .derecha { color: var(--derecha); }
+.cobertura-txt .cero { opacity: 0.45; font-weight: 500; }
+.principal .cobertura-txt .izquierda { color: #ff9b84; }
+.principal .cobertura-txt .centro { color: #d6d3cd; }
+.principal .cobertura-txt .derecha { color: #9cc2ff; }
+
+/* Tarjetas: menos piezas, más aire */
+.grilla { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+.tarjeta-cuerpo { padding: 16px 18px 18px; gap: 12px; }
+.tarjeta h3 { font-size: 1.22rem; line-height: 1.28; }
+.tarjeta-pie { gap: 10px; }
+.meta { font-size: 0.85rem; }
+.laterales { gap: 14px; }
+.lateral-nota { padding: 12px; grid-template-columns: 88px 1fr; }
+.lateral-nota img, .lateral-nota .mini-sin-img { width: 88px; height: 72px; }
+.lateral-nota h3 { font-size: 1.02rem; margin: 4px 0 8px; }
+
+/* Ficha más despejada */
+.ficha-cab h1 { margin: 10px 0 12px; }
+.ficha-cab .cobertura-ficha { background: var(--papel); border: 1px solid var(--linea); border-radius: var(--radio); padding: 12px 14px; margin-top: 14px; }
+.ficha-cab .cobertura-ficha b { display: block; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--tinta-3); margin-bottom: 8px; }
+.lado-card { padding: 18px; gap: 12px; }
+.titulo-lado { font-size: 1.05rem; padding: 12px 14px; }
+.corr-resumen { margin: 0 0 12px; font-size: 1rem; }
+.desplegable { margin-top: 12px; border-top: 1px dashed var(--linea); padding-top: 10px; }
+.desplegable summary { cursor: pointer; font-weight: 700; color: var(--acento); font-size: 0.95rem; list-style: none; }
+.desplegable summary::-webkit-details-marker { display: none; }
+.desplegable summary::before { content: '▸ '; }
+.desplegable[open] summary::before { content: '▾ '; }
+.desplegable > :not(summary) { margin-top: 12px; }
+@media (max-width: 960px) { .solo-escritorio { display: none; } }
+#fuentes .desplegable { border-top: 0; padding-top: 0; margin-top: 0; }

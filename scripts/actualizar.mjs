@@ -190,6 +190,7 @@ function armarHistoria(grupo, mediosPorId) {
       - Math.max(0, horasDesde(primero.fecha)) * 2
       - Math.max(0, horasDesde(ultima.fecha)) * 3
       - (sol.relleno ? 25 : 0) + sol.puntaje * 0.05
+      - (tema === 'sociedad' ? 20 : 0) // Sociedad (clima, tránsito, curiosidades) va al final de la portada
     ) * 10) / 10,
     mediosRecientes,
     solidez: { puntaje: sol.puntaje, nivel: sol.nivel, etiqueta: sol.etiqueta, senales: sol.senales },
@@ -244,7 +245,7 @@ function oraciones(texto, max = 320) {
 /** «Ponete al día»: las noticias más cubiertas de las últimas 24 horas, con cómo la titula cada lado. */
 function armarHoy(historias) {
   const elegidas = [...historias]
-    .filter((h) => h.medios >= 3 && !h.relleno && (DEMO || horasDesde(h.fecha) <= 24))
+    .filter((h) => h.medios >= 3 && !h.relleno && h.tema !== 'sociedad' && (DEMO || horasDesde(h.fecha) <= 24))
     .sort((a, b) => b.puntaje - a.puntaje)
     .slice(0, 12);
   const bloques = elegidas.map((h) => {

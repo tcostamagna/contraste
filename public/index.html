@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700;8..60,800&display=swap">
-  <link rel="stylesheet" href="estilos.css?v=1795784096129">
+  <link rel="stylesheet" href="estilos.css?v=1795785979196">
 </head>
 <body data-vista="portada">
   <a class="saltar" href="#contenido">Ir al contenido</a>
@@ -23,18 +23,24 @@
         <span class="marca-icono" aria-hidden="true"><i></i><i></i><i></i></span>
         <span class="marca-texto">Contraste <em>News</em></span>
       </a>
-      <form class="buscador" action="./" method="get" role="search">
-        <label class="sr" for="q">Buscar noticias</label>
-        <input id="q" name="q" type="search" placeholder="Buscar: Milei, dólar, Boca…" autocomplete="off">
-      </form>
       <nav class="nav" aria-label="Secciones">
         <a href="./" aria-current="page">Portada</a>
         <a href="hoy.html">Ponete al día</a>
         <a href="puntos-ciegos.html">Puntos ciegos</a>
         <a href="opinion.html">Opinión</a>
-        <a href="medios.html">Medios</a>
-        <a href="metodo.html">Cómo funciona</a>
       </nav>
+      <div class="cabecera-acciones">
+        <form class="buscador" action="./" method="get" role="search">
+          <label class="sr" for="q">Buscar noticias</label>
+          <input id="q" name="q" type="search" placeholder="Buscar noticias" autocomplete="off">
+        </form>
+        <button type="button" class="boton-icono boton-buscar" aria-label="Buscar" aria-expanded="false" aria-controls="q">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </button>
+        <a class="boton-ayuda" href="metodo.html" title="Cómo funciona">
+          <span aria-hidden="true">?</span><span class="boton-ayuda-texto">Cómo funciona</span>
+        </a>
+      </div>
     </div>
     <div class="ticker" id="ticker" hidden></div>
   </header>
@@ -47,10 +53,11 @@
       </div>
       <div>
         <p id="actualizado"></p>
-        <p>La ubicación de cada medio en izquierda, centro o derecha es aproximada y discutible: mirala en <a href="medios.html">Medios</a>. <a href="metodo.html">Cómo funciona</a> · <a href="metodo.html#glosario">Glosario</a>.</p>
+        <p>La ubicación de cada medio en izquierda, centro o derecha es aproximada y discutible: mirala en <a href="medios.html">Medios</a>.</p>
+        <p><a href="metodo.html">Cómo funciona</a> · <a href="metodo.html#glosario">Glosario</a> · <a href="medios.html">Los medios que leemos</a> · <a href="opinion.html">Opinión</a> · <a href="puntos-ciegos.html">Puntos ciegos</a></p>
       </div>
     </div>
   </footer>
-  <script src="app.js?v=1795784096129" defer></script>
+  <script src="app.js?v=1795785979196" defer></script>
 </body>
 </html>
